@@ -1028,11 +1028,11 @@ Respond with ONLY this JSON (no other text, no markdown):
 }`;
 
   try {
-    const resp = await fetch('https://api.anthropic.com/v1/messages', {
+    const resp = await fetch('/api/chat', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'anthropic-version': '2023-06-01',
+       
       },
       body: JSON.stringify({
         model: 'claude-sonnet-4-20250514',
@@ -1146,11 +1146,11 @@ async function testAPI() {
   btn.textContent = '⏳ Testing...';
   btn.disabled = true;
   try {
-      const r = await fetch('https://api.anthropic.com/v1/messages', {
+      const r = await fetch('/api/chat', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'anthropic-version': '2023-06-01',
+        
       },
       body: JSON.stringify({
         model: 'claude-sonnet-4-20250514',
