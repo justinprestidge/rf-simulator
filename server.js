@@ -63,7 +63,7 @@ const limiter = rateLimit({
 app.use('/api/', limiter);
 
 // ── Serve the simulator HTML ──
-app.use(express.static(path.join(__dirname, 'public')));
+app.use(express.static(__dirname));
 
 // Password check middleware (if ACCESS_PASSWORD is set)
 function checkPassword(req, res, next) {
