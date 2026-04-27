@@ -1,0 +1,19 @@
+{
+  "name": "rf-sales-simulator",
+  "version": "1.0.0",
+  "description": "Republic Finance Sales Call Simulator — Backend Proxy",
+  "main": "server.js",
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node --watch server.js"
+  },
+  "dependencies": {
+    "dotenv": "^16.0.0",
+    "express": "^4.18.0",
+    "express-rate-limit": "^7.0.0",
+    "node-fetch": "^2.7.0"
+  }
+}

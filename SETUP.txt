@@ -1,0 +1,46 @@
+RF SALES CALL SIMULATOR — QUICK SETUP
+======================================
+
+WHAT YOU NEED (one time only):
+  1. Node.js installed on your computer
+  2. An Anthropic API key
+
+STEP 1 — Install Node.js (if not already installed)
+  Go to: https://nodejs.org
+  Download the LTS version
+  Run the installer, click Next through everything
+  This takes about 2 minutes
+
+STEP 2 — Get an API key (your manager may provide this)
+  Go to: https://console.anthropic.com
+  Sign up or log in
+  Click "API Keys" then "Create Key"
+  Copy the key (it starts with sk-ant-)
+
+STEP 3 — Add your API key
+  Open the file called "apikey.txt" in this folder
+  Delete the placeholder text
+  Paste your API key
+  Save the file
+
+STEP 4 — Launch the simulator
+  Windows: Double-click "START.bat"
+  Mac/Linux: Double-click "start.sh" 
+             (or run: bash start.sh)
+
+  Your browser will open automatically.
+  Keep the black window open while using the simulator.
+  Close it when you are done.
+
+TROUBLESHOOTING
+  "Node.js is not installed" → Do Step 1
+  "No API key found"         → Do Steps 2 and 3
+  "Port already in use"      → Try opening http://localhost:3000 directly
+  Nothing happens on Mac     → Right-click start.sh → Open With → Terminal
+
+COST
+  Each practice call costs approximately $0.05-0.15 in API usage.
+  This is billed to whoever owns the API key, not to you.
+
+QUESTIONS
+  Contact your manager or RVP for support.
