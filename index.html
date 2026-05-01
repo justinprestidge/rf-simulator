@@ -531,8 +531,8 @@ function renderBureau() {
       </div>
       ${trades}
       <div style="margin-top:8px;display:flex;justify-content:space-between;font-size:11px;color:var(--text2)">
-        <span>Total monthly debt: <strong style="color:var(--text)">$${b.total_debt}/mo</strong></span>
-        <span>DTI: <strong style="color:var(--amber)">${Math.round(b.total_debt/b.income*100)}%</strong></span>
+        <span>Total monthly debt: <strong style="color:var(--text)">$${b.total_monthly_debt}/mo</strong></span>
+        <span>DTI: <strong style="color:var(--amber)">${Math.round(b.total_monthly_debt/b.income*100)}%</strong></span>
       </div>
       <div style="margin-top:6px;font-size:11px;color:var(--text2);font-style:italic">${b.notes}</div>
     </div>`;
@@ -814,9 +814,12 @@ Output ONLY this JSON:
 {"rapport_score":14,"product_score":12,"objection_score":18,"benefits_score":10,"closing_score":12,"overall_score":66,"outcome_label":"Developing","summary":"Two direct sentences referencing actual moments.","rapport_note":"Specific observation on rapport","product_note":"Specific observation on product knowledge or bureau prep","objection_note":"Specific observation on objection handling","benefits_note":"Specific observation on benefits communication","closing_note":"Specific observation on closing attempt","what_worked":["specific quote or moment","another specific strength"],"opportunities":["specific missed moment with Republic Way suggestion","another opportunity"],"archetype_coaching":"2-3 sentences on their archetype and what this call revealed. Direct and actionable.","next_practice":"One concrete Republic Way behavior to focus on next call."}`
 
   try {
-    const resp = await fetch('/api/chat', {
+    const resp = await fetch('https://api.anthropic.com/v1/messages', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: {
+        'Content-Type': 'application/json',
+        'anthropic-version': '2023-06-01',
+      },
       body: JSON.stringify({
         model: 'claude-sonnet-4-20250514',
         max_tokens: 1000,
@@ -842,117 +845,85 @@ Output ONLY this JSON:
 
 function renderDebrief(d, outcome) {
   const scoreColor = s => s >= 80 ? '#10b981' : s >= 65 ? '#3b82f6' : s >= 50 ? '#f59e0b' : '#ef4444';
-  const scoreBar   = (score, max) => {
-    const pct = Math.round((score / max) * 100);
-    const clr = scoreColor(pct);
-    return `<div style="height:4px;background:var(--border);border-radius:2px;margin-top:4px">
-      <div style="height:4px;width:${pct}%;background:${clr};border-radius:2px;transition:width .6s ease"></div>
-    </div>`;
-  };
   const outcomeIcon = outcome === 'converted' ? '✅' : outcome === 'followup' ? '📅' : '📵';
-  const archConfig  = ARCHETYPE_CONFIGS[state.archetype || 'random'];
+  const archConfig = ARCHETYPE_CONFIGS[state.archetype || 'random'];
 
-  // Score dimensions — support both new field names and legacy scores object
-  const DIMS = [
-    {label:'Rapport',                max:20, score:d.rapport_score   ??d.scores?.rapport?.score??0,         note:d.rapport_note   ||d.scores?.rapport?.note||''},
-    {label:'Product Knowledge',      max:20, score:d.product_score   ??d.scores?.product_knowledge?.score??0, note:d.product_note  ||d.scores?.product_knowledge?.note||''},
-    {label:'Objection Handling',     max:25, score:d.objection_score ??d.scores?.objection_handling?.score??0,note:d.objection_note||d.scores?.objection_handling?.note||''},
-    {label:'Benefits Communication', max:15, score:d.benefits_score  ??d.scores?.benefits_communication?.score??0,note:d.benefits_note||d.scores?.benefits_communication?.note||''},
-    {label:'Closing',                max:20, score:d.closing_score   ??d.scores?.closing?.score??0,          note:d.closing_note  ||d.scores?.closing?.note||''},
+  const DIMS=[
+    {label:'Rapport',               max:20,score:d.rapport_score||0,   note:d.rapport_note||''},
+    {label:'Product Knowledge',     max:20,score:d.product_score||0,   note:d.product_note||''},
+    {label:'Objection Handling',    max:25,score:d.objection_score||0, note:d.objection_note||''},
+    {label:'Benefits Communication',max:15,score:d.benefits_score||0,  note:d.benefits_note||''},
+    {label:'Closing',               max:20,score:d.closing_score||0,   note:d.closing_note||''},
   ];
+  const useNew = d.rapport_score !== undefined;
+  const scoreItems = useNew
+    ? DIMS.map(dim => {
+        const pct=Math.round((dim.score/dim.max)*100);
+        const clr=scoreColor(pct);
+        const lbl=pct>=90?'Exceptional':pct>=80?'Strong':pct>=70?'Solid':pct>=60?'Developing':pct>=50?'Needs Work':'Gap';
+        return `<div class="score-item">
+          <div class="score-label">${dim.label}<span style="color:var(--text3);font-size:9px;margin-left:4px">${dim.score}/${dim.max}</span></div>
+          <div class="score-val" style="color:${clr}">${dim.score}</div>
+          <div class="score-note">${lbl} — ${dim.note}</div>
+        </div>`;
+      }).join('')
+    : Object.entries(d.scores||{}).map(([key,v]) => `
+        <div class="score-item">
+          <div class="score-label">${key.replace(/_/g,' ').replace(/\b\w/g,l=>l.toUpperCase())}</div>
+          <div class="score-val" style="color:${scoreColor(v.score)}">${v.score}</div>
+          <div class="score-note">${v.label} — ${v.note}</div>
+        </div>`).join('');
 
-  // Compute overall if missing
-  if (!d.overall_score || d.overall_score < 1) {
-    d.overall_score = DIMS.reduce((sum, dim) => sum + (dim.score||0), 0);
-  }
-
-  const scoreItems = DIMS.map(dim => {
-    const pct = Math.round((dim.score / dim.max) * 100);
-    const clr = scoreColor(pct);
-    const lbl = pct>=90?'Exceptional':pct>=80?'Strong':pct>=70?'Solid':pct>=60?'Developing':pct>=50?'Needs Work':'Gap';
-    return `<div class="score-item" style="padding:12px;background:var(--panel2);border-radius:10px;border:1px solid var(--border);">
-      <div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:2px">
-        <div class="score-label" style="font-size:11px;font-weight:700;color:var(--text)">${dim.label}</div>
-        <div style="display:flex;align-items:baseline;gap:2px">
-          <div class="score-val" style="font-family:'Syne',sans-serif;font-weight:800;font-size:20px;color:${clr}">${dim.score}</div>
-          <div style="font-size:10px;color:var(--text3);font-family:'DM Mono',monospace">/${dim.max}</div>
-        </div>
-      </div>
-      ${scoreBar(dim.score, dim.max)}
-      <div class="score-note" style="font-size:11px;color:var(--text2);margin-top:6px;line-height:1.5"><span style="color:${clr};font-weight:700">${lbl}</span> — ${dim.note}</div>
-    </div>`;
-  }).join('');
-
-  const worked = (d.what_worked||[]).map(w => `<div class="debrief-item positive" style="padding:8px 12px;background:#10b98110;border-left:3px solid #10b981;border-radius:0 6px 6px 0;font-size:12px;color:var(--text2);line-height:1.5;margin-bottom:6px">${w}</div>`).join('');
-  const opps   = (d.opportunities||[]).map(o => `<div class="debrief-item negative" style="padding:8px 12px;background:#f59e0b10;border-left:3px solid #f59e0b;border-radius:0 6px 6px 0;font-size:12px;color:var(--text2);line-height:1.5;margin-bottom:6px">${o}</div>`).join('');
-
-  const overallClr = scoreColor(d.overall_score);
-  const overallLbl = d.outcome_label || (d.overall_score>=90?'Exceptional':d.overall_score>=80?'Strong':d.overall_score>=70?'Solid':d.overall_score>=60?'Developing':d.overall_score>=50?'Needs Work':'Needs Attention');
+  const worked = (d.what_worked||[]).map(w => `<div class="debrief-item positive">${w}</div>`).join('');
+  const opps   = (d.opportunities||[]).map(o => `<div class="debrief-item negative">${o}</div>`).join('');
 
   document.getElementById('debrief-content').innerHTML = `
-    <!-- Header -->
     <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px">
       <div>
         <div style="font-family:'Syne',sans-serif;font-weight:800;font-size:20px">Call Debrief</div>
         <div style="font-size:12px;color:var(--text2);margin-top:2px">${state.associateName} · ${state.callType.toUpperCase()} · ${DIFFICULTY_SETTINGS[state.difficulty].label}</div>
       </div>
       <div style="text-align:right">
-        <div style="font-size:28px">${outcomeIcon}</div>
-        <div style="font-size:11px;color:var(--text2)">${outcome==='converted'?'Converted!':outcome==='followup'?'Follow-up Set':'Declined'}</div>
+        <div style="font-size:24px">${outcomeIcon}</div>
+        <div style="font-size:11px;color:var(--text2)">${outcome === 'converted' ? 'Converted!' : outcome === 'followup' ? 'Follow-up Set' : 'Declined'}</div>
       </div>
     </div>
 
-    <!-- Overall Score Card -->
-    <div style="text-align:center;background:var(--panel2);border-radius:16px;padding:24px 20px;margin-bottom:20px;border:1px solid var(--border)">
-      <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--text3);margin-bottom:8px">Overall Score</div>
-      <div style="display:flex;align-items:baseline;justify-content:center;gap:4px;margin-bottom:4px">
-        <div style="font-family:'Syne',sans-serif;font-weight:800;font-size:64px;color:${overallClr};line-height:1">${d.overall_score}</div>
-        <div style="font-size:18px;color:var(--text3);font-family:'DM Mono',monospace;align-self:flex-end;padding-bottom:8px">/100</div>
-      </div>
-      <div style="font-family:'Syne',sans-serif;font-weight:700;font-size:18px;color:${overallClr};margin-bottom:10px">${overallLbl}</div>
-      <div style="height:6px;background:var(--border);border-radius:3px;max-width:240px;margin:0 auto 14px">
-        <div style="height:6px;width:${d.overall_score}%;background:${overallClr};border-radius:3px;transition:width .8s ease"></div>
-      </div>
-      <div style="font-size:12px;color:var(--text2);max-width:420px;margin:0 auto;line-height:1.7">${d.summary||''}</div>
+    <div style="text-align:center;background:var(--panel2);border-radius:12px;padding:20px;margin-bottom:16px">
+      <div style="font-family:'Syne',sans-serif;font-weight:800;font-size:52px;color:${scoreColor(d.overall_score)}">${d.overall_score}</div>
+      <div style="font-family:'Syne',sans-serif;font-weight:700;font-size:16px;margin-top:2px">${d.outcome_label || 'Call Complete'}</div>
+      <div style="font-size:12px;color:var(--text2);margin-top:8px;max-width:400px;margin-left:auto;margin-right:auto;line-height:1.6">${d.summary}</div>
     </div>
 
-    <!-- Score Dimensions -->
-    <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--text3);margin-bottom:10px">The Republic Way — Dimension Scores</div>
-    <div class="score-grid" style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:20px">${scoreItems}</div>
+    <div class="score-grid">${scoreItems}</div>
 
-    <!-- Archetype Coaching -->
     ${state.archetype ? `
-    <div style="background:#3b82f610;border:1px solid #3b82f625;border-radius:12px;padding:16px;margin-bottom:16px">
-      <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:var(--accent);margin-bottom:8px">🎯 ${state.archetype} — Archetype Coaching</div>
-      <div style="font-size:12px;color:var(--text2);line-height:1.7">${d.archetype_coaching||''}</div>
+    <div style="background:#3b82f615;border:1px solid #3b82f630;border-radius:10px;padding:14px;margin-bottom:14px">
+      <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--accent);margin-bottom:6px">🎯 ${state.archetype} — Archetype Coaching</div>
+      <div style="font-size:12px;color:var(--text2);line-height:1.6">${d.archetype_coaching}</div>
     </div>` : ''}
 
-    <!-- What Worked -->
-    <div class="debrief-section" style="margin-bottom:16px">
-      <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:#10b981;margin-bottom:8px">✓ What Worked</div>
-      ${worked || '<div style="font-size:12px;color:var(--text2);font-style:italic">Continue working on all fundamentals</div>'}
+    <div class="debrief-section">
+      <div class="debrief-title">✓ What Worked</div>
+      ${worked || '<div class="debrief-item neutral">Keep working on all fundamentals</div>'}
     </div>
 
-    <!-- Opportunities -->
-    <div class="debrief-section" style="margin-bottom:16px">
-      <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:#f59e0b;margin-bottom:8px">→ Republic Way Opportunities</div>
-      ${opps || '<div style="font-size:12px;color:var(--text2);font-style:italic">Great call — focus on consistency</div>'}
+    <div class="debrief-section">
+      <div class="debrief-title">→ Opportunities</div>
+      ${opps || '<div class="debrief-item neutral">Great call — focus on consistency</div>'}
     </div>
 
-    <!-- Next Practice Focus -->
     ${d.next_practice ? `
-    <div style="background:#10b98110;border:1px solid #10b98125;border-radius:12px;padding:16px;margin-bottom:20px">
-      <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:#10b981;margin-bottom:6px">📋 Next Practice Focus</div>
-      <div style="font-size:13px;color:var(--text);line-height:1.6;font-weight:500">${d.next_practice}</div>
+    <div style="background:#10b98115;border:1px solid #10b98130;border-radius:10px;padding:14px;margin-top:14px">
+      <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--green);margin-bottom:6px">📋 Next Practice Focus</div>
+      <div style="font-size:12px;color:var(--text2);line-height:1.6">${d.next_practice}</div>
     </div>` : ''}
 
-    <!-- Action Buttons -->
-    <div style="display:flex;gap:8px;margin-top:4px">
+    <div style="display:flex;gap:8px;margin-top:20px">
       <button class="btn-primary" onclick="resetSim()" style="flex:1">🔄 New Scenario</button>
-      <button class="btn-secondary" onclick="reviewConversation()" style="flex:1">💬 Review Conversation</button>
+      <button class="btn-secondary" style="flex:1" onclick="reviewConversation()">💬 Review Conversation</button>
     </div>`;
 }
-
 
 function renderFallbackDebrief(outcome) {
   const signals = [
