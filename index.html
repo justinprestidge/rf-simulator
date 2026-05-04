@@ -238,12 +238,12 @@ label{font-size:11px;color:var(--text2);display:block;margin-bottom:3px;}
         <div class="panel-label">Scenario</div>
         <div id="scenario-display"></div>
       </div>
-      <div class="panel-section" id="coaching-cues-section" style="display:none">
-        <div class="panel-label">Prep Notes <span style="color:var(--text3);font-weight:400">(visible to coach)</span></div>
+      <div class="panel-section" id="coaching-cues-section" style="display:block">
+        <div class="panel-label">🎯 Prep Notes <span style="color:var(--text3);font-weight:400;font-size:9px">— bureau prep + Republic Way questions</span></div>
         <div id="coaching-cues-display"></div>
       </div>
       <div class="panel-section" style="margin-top:auto">
-        <button class="btn-secondary" onclick="toggleCues()">👁 Toggle Coach Notes</button>
+        <button class="btn-secondary" onclick="toggleCues()">👁 Toggle Prep Notes</button>
         <button class="btn-secondary" onclick="endCall()" id="end-call-btn" style="margin-top:0;border-color:var(--amber);color:var(--amber)">📵 End Call</button>
         <button class="btn-secondary" onclick="resetSim()" style="margin-top:0">↩ New Scenario</button>
       </div>
@@ -367,6 +367,44 @@ const OCCUPATIONS=["HVAC Technician", "Electrician", "Plumber", "Welder", "Carpe
 const CALL_OPENINGS={"cooperative": ["Hello?", "Yeah, hello?", "Hi, who is this?", "Hello, this is {name}.", "Yeah?", "Hi there.", "Yes?"], "hesitant": ["Hello? I'm kind of busy.", "Yeah, who is this?", "Hello? I don't have a lot of time.", "Hi, what is this about?"], "resistant": ["Yeah, who is this and what do you want.", "Hello. I am really not interested.", "Yeah? Make it quick.", "Who is this."], "irrational": ["What? Who gave you this number?", "Hello? Stop calling me.", "I didn't sign up for calls.", "How did you get my number?"]};
 const PERSONALITY_FLAVORS=[{"id": "rushed", "desc": "Genuinely busy. Will engage if you respect their time."}, {"id": "skeptical", "desc": "Wants specifics early. Hard questions up front."}, {"id": "tired", "desc": "Low energy. Mild resistance from fatigue."}, {"id": "guarded", "desc": "Prior bad experiences make them cautious."}, {"id": "friendly", "desc": "Warm but not a pushover."}, {"id": "proud", "desc": "Proud of credit progress, sensitive about anything that might damage it."}, {"id": "curious", "desc": "Open to hearing more but wants to understand before committing."}];
 const FINANCIAL_SITUATIONS=["needs money for a home repair", "wants to consolidate bills", "unexpected car repair", "planning a family vacation", "medical bill not covered", "holiday expenses", "replace a major appliance", "debt consolidation", "emergency expense", "wants to get ahead financially"];
+
+// ============ CALL HISTORY & ANNOYANCE ============
+const CALL_HISTORY_PROFILES = [
+  { calls: 0, label: 'First contact this month', annoyance: 'fresh',
+    mood_modifier: 'This is their first contact from Republic Finance this month. Neutral to slightly open.',
+    opening_mood_note: '' },
+  { calls: 1, label: '2nd contact this month', annoyance: 'mild',
+    mood_modifier: 'Called once before this month. Mildly aware of the pattern. May mention it.',
+    opening_mood_note: 'might say "you guys called me recently"' },
+  { calls: 2, label: '3rd contact this month', annoyance: 'moderate',
+    mood_modifier: 'Called twice already this month. Noticeably aware of the frequency. Will likely bring it up.',
+    opening_mood_note: 'will likely say "you keep calling me" or "I already talked to someone"' },
+  { calls: 3, label: '4th contact this month', annoyance: 'fatigued',
+    mood_modifier: 'Called three times this month. Call fatigue is real. Will open with frustration about frequency.',
+    opening_mood_note: 'will open frustrated: "This is the third or fourth time you all have called"' },
+  { calls: 4, label: '5th+ contact this month', annoyance: 'hostile',
+    mood_modifier: 'Called four or more times this month. Frustrated and guarded. Recovering this call is a real skill.',
+    opening_mood_note: 'opens hostile: "I have told you people before I am not interested, why do you keep calling?"' },
+];
+
+const APPRECIATION_MONTHS = [4, 10]; // May=4, November=10 (0-indexed)
+
+function getCallHistoryProfile() {
+  // Weighted toward lower call counts (realistic distribution)
+  const weights = [35, 28, 20, 11, 6]; // % chance of 0,1,2,3,4 prior calls
+  const rand = Math.random() * 100;
+  let cumulative = 0;
+  for (let i = 0; i < weights.length; i++) {
+    cumulative += weights[i];
+    if (rand < cumulative) return CALL_HISTORY_PROFILES[i];
+  }
+  return CALL_HISTORY_PROFILES[0];
+}
+
+function isAppreciationMonth() {
+  return APPRECIATION_MONTHS.includes(new Date().getMonth());
+}
+
 function randomFrom(arr){return arr[Math.floor(Math.random()*arr.length)];}
 function generateCustomerProfile(){return{name:randomFrom(FIRST_NAMES)+' '+randomFrom(LAST_NAMES),occupation:randomFrom(OCCUPATIONS),situation:randomFrom(FINANCIAL_SITUATIONS),flavor:randomFrom(PERSONALITY_FLAVORS)};}
 function getOpeningLine(diff,nm){const p=CALL_OPENINGS[diff]||CALL_OPENINGS.hesitant;return randomFrom(p).replace('{name}',nm.split(' ')[0]);}
@@ -375,6 +413,10 @@ function getOpeningLine(diff,nm){const p=CALL_OPENINGS[diff]||CALL_OPENINGS.hesi
 // STATE
 // ============================================================
 let state = {
+  callHistory: 0,        // how many times called this month (0-4, randomized)
+  annoyanceLevel: null,  // 'fresh'|'mild'|'moderate'|'fatigued'|'hostile'
+  isAppreciationMonth: false,  // May or November
+  callOutcome: null,     // 'converted'|'followup'|'relationship'|'declined'
   phase: 'setup',       // setup | prep | call | debrief
   archetype: null,
   callType: null,
@@ -452,6 +494,13 @@ function startSimulation() {
   state.turnCount = 0;
   state.callEnded = false;
   state.askedQualifyingQuestion=false;
+
+  // Call history & annoyance
+  const histProfile = getCallHistoryProfile();
+  state.callHistory    = histProfile.calls;
+  state.annoyanceLevel = histProfile.annoyance;
+  state.isAppreciationMonth = isAppreciationMonth();
+  state.histProfile    = histProfile;
   state.showedBureauKnowledge=false;
   state.customerOccupation=null;
   state.customerSituation=null;
@@ -523,6 +572,18 @@ function renderBureau() {
         <div>
           <div class="bureau-name">${state.customerName}</div>
           <div class="bureau-meta">${b.occupation} · $${b.income.toLocaleString()}/mo income</div>
+      <div class="bureau-meta" style="margin-top:4px">
+        ${state.histProfile ? `<span style="padding:2px 8px;border-radius:10px;font-size:10px;font-weight:700;background:${
+          state.annoyanceLevel==='fresh'?'#10b98120':
+          state.annoyanceLevel==='mild'?'#3b82f620':
+          state.annoyanceLevel==='moderate'?'#f59e0b20':
+          state.annoyanceLevel==='fatigued'?'#ef444420':'#ef444430'};color:${
+          state.annoyanceLevel==='fresh'?'#10b981':
+          state.annoyanceLevel==='mild'?'#3b82f6':
+          state.annoyanceLevel==='moderate'?'#f59e0b':
+          '#ef4444'}">📞 ${state.histProfile.label}</span>` : ''}
+        ${state.isAppreciationMonth ? '<span style="padding:2px 8px;border-radius:10px;font-size:10px;font-weight:700;background:#f59e0b20;color:#f59e0b;margin-left:4px">🎉 Appreciation Month</span>' : ''}
+      </div>
         </div>
         <div style="text-align:right">
           <div class="fico-badge">${b.fico}</div>
@@ -551,9 +612,107 @@ function renderScenario() {
     <div style="font-size:11px;color:var(--text2);margin-bottom:4px">${diff.desc}</div>
     ${state.archetype ? `<div style="font-size:11px;color:var(--accent);margin-top:6px">Focus area: <em>${archConfig.focus}</em></div>` : ''}`;
 
-  const cues = state.bureau.cues;
-  document.getElementById('coaching-cues-display').innerHTML = cues.map(c =>
-    `<div class="coaching-cue">${c}</div>`).join('');
+  // ── Dynamic coach notes from bureau data ──
+  const b = state.bureau;
+  const veh = b.vehicle;
+  const archConf = ARCHETYPE_CONFIGS[state.archetype || 'random'];
+
+  // Bureau prep hints — specific to this customer's file
+  const prepHints = [];
+  if (b.prep_hooks && b.prep_hooks.length) {
+    b.prep_hooks.forEach(h => prepHints.push(h));
+  } else {
+    // Fallback: generate from accounts
+    b.accounts.forEach(a => {
+      if (a.balance > 2000) prepHints.push(`Reference ${a.creditor} — $${a.balance.toLocaleString()} ${a.type}`);
+    });
+  }
+  if (veh) {
+    const equity = veh.est_value - veh.lien_balance;
+    if (equity > 500) prepHints.push(`${veh.year} ${veh.make} ${veh.model} — ~$${equity.toLocaleString()} equity with ${veh.lien_holder}`);
+    else if (equity <= 0) prepHints.push(`${veh.year} ${veh.make} — financed with ${veh.lien_holder}, no equity yet — mention auto refi option`);
+    else prepHints.push(`${veh.year} ${veh.make} — vehicle on file with ${veh.lien_holder}`);
+  }
+  if (b.credit_inquiry_education) {
+    prepHints.push(`Inquiry objection likely — prep: "${b.credit_inquiry_education.key_point}"`);
+  }
+
+  // Consolidation opportunity
+  const highBalAccounts = b.accounts.filter(a => a.balance > 1500 && a.code !== 'FM');
+  if (highBalAccounts.length >= 2) {
+    const totalConsolidatable = highBalAccounts.reduce((s,a) => s+a.balance, 0);
+    const totalPayments = highBalAccounts.reduce((s,a) => s+a.payment, 0);
+    prepHints.push(`Consolidation opportunity: ${highBalAccounts.length} accounts totaling $${totalConsolidatable.toLocaleString()} ($${totalPayments}/mo in payments)`);
+  }
+
+  // Call history note
+  if (state.histProfile && state.histProfile.calls > 0) {
+    prepHints.push(`Call #${state.histProfile.calls + 1} this month — expect ${state.histProfile.opening_mood_note || 'some awareness of prior contact'}`);
+  }
+  if (state.isAppreciationMonth) {
+    prepHints.push(`Customer Appreciation Month — lead with guaranteed offer context to soften call fatigue`);
+  }
+
+  // Republic Way questions — specific to this customer's situation
+  const rwQuestions = [];
+
+  // Opening discovery questions based on bureau profile
+  if (b.call_type_fit && b.call_type_fit.includes('lcc')) {
+    rwQuestions.push(`"How did you end up using that check we sent you?" — opens LC conversation naturally`);
+  }
+  if (highBalAccounts.length >= 2) {
+    rwQuestions.push(`"Who else are you paying besides us right now?" — surfaces consolidation opportunity`);
+    rwQuestions.push(`"What creditors would you pay off right now if you could?" — builds the case for consolidation`);
+  }
+  if (veh) {
+    rwQuestions.push(`"Who is your ${veh.make} financed with?" — confirms vehicle info, opens auto option`);
+  }
+
+  // 6 Fundamental Questions tailored to this profile
+  const likelyObjection = (b.likely_objections && b.likely_objections[0]) || '';
+  rwQuestions.push(`"What's going on financially for you right now?" — What's happening? (Q1)`);
+  if (b.income < 3500) {
+    rwQuestions.push(`"Where would having a lower monthly payment help you most?" — How are you impacted? (Q4)`);
+  } else {
+    rwQuestions.push(`"What would you do with extra funds if you had them?" — What do you want to happen? (Q2)`);
+  }
+  if (likelyObjection) {
+    rwQuestions.push(`Likely objection: "${likelyObjection}" — acknowledge first, then reframe`);
+  }
+  rwQuestions.push(`"If we could show you a way to lower your monthly payments, would you want to see those numbers?" — If we could help you...? (Q5)`);
+
+  // Closing suggestion based on difficulty
+  if (state.difficulty === 'resistant' || state.difficulty === 'irrational') {
+    rwQuestions.push(`Close: "I'm not asking you to decide anything today — when's a better time to go over these numbers with you?"`);
+  } else {
+    rwQuestions.push(`Close: "Would this afternoon or tomorrow morning work to go over what we've got for you?"`);
+  }
+
+  // What a successful call looks like for this specific scenario
+  const successNote = state.annoyanceLevel === 'hostile' || state.annoyanceLevel === 'fatigued'
+    ? `Success on this call = customer ends warmly even without an app. Relationship Win counts.`
+    : outcome === 'relationship'
+    ? `Strong call = app taken or solid follow-up. Cooperative customer — push for the application.`
+    : `Strong call = application taken OR firm callback scheduled with a specific time.`;
+
+  document.getElementById('coaching-cues-display').innerHTML = `
+    <div style="display:flex;flex-direction:column;gap:10px">
+
+      <div>
+        <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--accent);margin-bottom:6px">📋 Bureau Prep — What to Reference</div>
+        ${prepHints.map(h => `<div style="padding:5px 8px;background:var(--panel);border-left:2px solid var(--accent);border-radius:0 4px 4px 0;font-size:11px;color:var(--text2);margin-bottom:4px;line-height:1.5">${h}</div>`).join('')}
+      </div>
+
+      <div>
+        <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:#10b981;margin-bottom:6px">💬 Republic Way Questions</div>
+        ${rwQuestions.map(q => `<div style="padding:5px 8px;background:var(--panel);border-left:2px solid #10b981;border-radius:0 4px 4px 0;font-size:11px;color:var(--text2);margin-bottom:4px;line-height:1.5;font-style:italic">${q}</div>`).join('')}
+      </div>
+
+      <div style="padding:8px 10px;background:#f59e0b10;border:1px solid #f59e0b30;border-radius:6px;font-size:11px;color:#f59e0b;line-height:1.5">
+        <strong>Win condition:</strong> ${successNote}
+      </div>
+
+    </div>`;
 }
 
 function toggleCues() {
@@ -746,10 +905,13 @@ ${b.customer_credit_awareness}
 Likely objections: ${(b.likely_objections||[]).join('; ')}
 Warms you up: ${(b.responds_well_to||[]).join('; ')}
 Difficulty: ${dmap[state.difficulty]||dmap.hesitant}
+${state.histProfile && state.histProfile.calls > 0 ? `CALL HISTORY CONTEXT: ${state.histProfile.mood_modifier} ${state.histProfile.opening_mood_note ? 'First response should reflect this — ' + state.histProfile.opening_mood_note + '.' : ''}` : ''}
+${state.isAppreciationMonth ? 'APPRECIATION MONTH (May/November): Republic Finance has guaranteed offers this month and is calling to share them. Customer generally responds a bit better to this framing when the associate mentions it. If associate mentions "Customer Appreciation" or "guaranteed offer" — acknowledge it positively even if still hesitant.' : ''}
 ${prep?'Associate referenced your specific account details — they prepared. Build more trust.':'Associate has not referenced specific details yet. Stay guarded.'}
 ${inqN}
 Republic Way: open-ended Qs, discover before offering, rate deferral = professional, callback = strong close.
-Rules: 1-3 sentences. Natural speech. Vary language. Append when call ends: [CALL_END:converted] [CALL_END:followup] [CALL_END:declined]
+Rules: 1-3 sentences. Natural speech. Vary language. Append when call ends: [CALL_END:converted] [CALL_END:followup] [CALL_END:relationship] [CALL_END:declined]
+[CALL_END:relationship] = customer declines application but ends the call warmly — they feel good about the interaction, associate thanked them for their business sincerely, customer says something like "I appreciate you calling" or "maybe next time" in a genuinely warm tone. This is a POSITIVE outcome.
 Conversation:\n${recentConv}
 ${state.customerName}: `;
   const resp=await fetch('/api/chat',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({model:'claude-sonnet-4-20250514',max_tokens:200,messages:[{role:'user',content:prompt}]})});
@@ -760,7 +922,7 @@ ${state.customerName}: `;
   const rl=raw.toLowerCase();
   if(rl.includes('makes sense')||rl.includes('tell me more'))mood='warming';
   if(rl.includes('not interested'))mood='resistant';
-  const em=raw.match(/\[CALL_END:(converted|followup|declined)\]/);
+  const em=raw.match(/\[CALL_END:(converted|followup|relationship|declined)\]/);
   if(em)return{content:raw.replace(/\[CALL_END:[^\]]+\]/,'').trim(),callEnded:true,outcome:em[1],mood};
   return{content:raw.trim(),callEnded:false,mood};
 }
@@ -798,6 +960,8 @@ Customer: ${state.bureau.label} Tier ${state.bureau.tier} FICO ${state.bureau.fi
 Bureau prep: ${state.showedBureauKnowledge} | Qualifying Q: ${state.askedQualifyingQuestion} | Asked for business: ${state.askedForBusiness}
 
 SHORT CALL: <3 turns = max 25pts. <2 turns = max 15pts. Hard cap.
+CALL HISTORY: ${state.histProfile ? `This was call #${state.histProfile.calls+1} this month (${state.histProfile.label}). Annoyance level: ${state.annoyanceLevel}.` : ''} ${state.isAppreciationMonth ? 'This is Customer Appreciation Month — guaranteed offers available.' : ''}
+RELATIONSHIP WIN: If outcome is 'relationship' — award FULL closing points (20) if associate thanked customer sincerely and customer ended warmly. A graceful professional close with no application IS a success. Note it explicitly in archetype_coaching.
 
 RAPPORT /20: +4 used name | +4 stated purpose naturally | +6 referenced specific creditor/vehicle/equity | +4 reassurance language | +2 matched energy
 PRODUCT KNOWLEDGE /20: +4 explained PCR/LCC correctly | +5 referenced THIS customer's situation | +5 handled rate professionally (FULL credit for deferral) | +4 consolidation benefit | +2 no false promises. Deduct 5 if quoted high rate cold with no context.
@@ -845,7 +1009,7 @@ Output ONLY this JSON:
 
 function renderDebrief(d, outcome) {
   const scoreColor = s => s >= 80 ? '#10b981' : s >= 65 ? '#3b82f6' : s >= 50 ? '#f59e0b' : '#ef4444';
-  const outcomeIcon = outcome === 'converted' ? '✅' : outcome === 'followup' ? '📅' : '📵';
+  const outcomeIcon = outcome === 'converted' ? '✅' : outcome === 'followup' ? '📅' : outcome === 'relationship' ? '🤝' : '📵';
   const archConfig = ARCHETYPE_CONFIGS[state.archetype || 'random'];
 
   const DIMS=[
