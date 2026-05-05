@@ -927,6 +927,13 @@ ${b.customer_credit_awareness}
 Likely objections: ${(b.likely_objections||[]).join('; ')}
 Warms you up: ${(b.responds_well_to||[]).join('; ')}
 Difficulty: ${dmap[state.difficulty]||dmap.hesitant}
+
+EXIT THRESHOLD (pressure: ${(state.weakTurns||0) + (state.histProfile?state.histProfile.calls:0)}/5):
+You default toward ENDING the call unless the associate creates value. Weak/vague responses without a question move you toward goodbye. ${(state.weakTurns||0)>=2?'You are losing patience — one more weak response and you wrap up.':''} ${((state.weakTurns||0)+(state.histProfile?state.histProfile.calls:0))>=4?'EXIT NOW — take the next polite opening. Append [CALL_END:relationship] or [CALL_END:declined].':''}
+
+PASSIVE CLOSE: If associate wraps up warmly without asking for application/callback → you accept the exit gracefully. Append [CALL_END:relationship]. Do NOT manufacture follow-up curiosity.
+
+CURIOSITY GATE: Only ask follow-up questions if associate has: referenced your specific accounts/vehicle, asked an open-ended question about your needs, OR explained a concrete monthly payment benefit. Generic statements get flat short responses.
 ${state.histProfile && state.histProfile.calls > 0 ? `CALL HISTORY CONTEXT: ${state.histProfile.mood_modifier} ${state.histProfile.opening_mood_note ? 'First response should reflect this — ' + state.histProfile.opening_mood_note + '.' : ''}` : ''}
 ${state.isAppreciationMonth ? 'APPRECIATION MONTH (May/November): Republic Finance has guaranteed offers this month and is calling to share them. Customer generally responds a bit better to this framing when the associate mentions it. If associate mentions "Customer Appreciation" or "guaranteed offer" — acknowledge it positively even if still hesitant.' : ''}
 ${prep?'Associate referenced your specific account details — they prepared. Build more trust.':'Associate has not referenced specific details yet. Stay guarded.'}
@@ -1195,9 +1202,13 @@ function resetSim() {
   document.getElementById('chat-area').innerHTML = '';
   document.getElementById('call-timer').textContent = '0:00';
   document.getElementById('turn-count').textContent = '0';
-  document.getElementById('msg-input').disabled = false;
+  const inp = document.getElementById('msg-input');
+  if (inp) { inp.disabled = false; inp.value = ''; inp.style.height = 'auto'; }
   document.getElementById('send-btn').disabled = false;
   document.getElementById('end-call-btn').disabled = false;
+  document.getElementById('transcript-preview').textContent = '';
+  if (typeof stopListening === 'function') stopListening();
+  if (typeof synth !== 'undefined' && synth) synth.cancel();
   clearInterval(state.timerInterval);
   updatePhase(0);
 }
@@ -1395,24 +1406,34 @@ function updateVoice() {
     }
   }
 }
-function speakText(text){if(!voiceMode||!synth)return;synth.cancel();const c=text.replace(/\[.*?\]/g,'').trim();if(!c)return;const u=new SpeechSynthesisUtterance(c);u.rate=0.95;if(selectedVoice)u.voice=selectedVoice;isSpeaking=true;const b=document.getElementById('mic-btn');if(b){b.className='voice-btn processing';b.textContent='🔊';}u.onend=()=>{isSpeaking=false;if(voiceMode&&!state.callEnded)setTimeout(()=>{if(voiceMode&&!state.callEnded)startListening();},400);if(b&&voiceMode){b.className='voice-btn idle';b.textContent='🎙';}};u.onerror=()=>{isSpeaking=false;};synth.speak(u);}
+function speakText(text) {
+  if(!voiceMode||!synth)return;
+  synth.cancel();
+  const clean=text.replace(/\[.*?\]/g,'').trim();
+  if(!clean)return;
+  const utt=new SpeechSynthesisUtterance(clean);
+  utt.rate=0.95;
+  if(selectedVoice)utt.voice=selectedVoice;
+  isSpeaking=true;
+  const b=document.getElementById('mic-btn');
+  if(b){b.className='voice-btn processing';b.textContent='🔊';}
+  utt.onend=()=>{
+    isSpeaking=false;
+    if(b&&voiceMode){b.className='voice-btn idle';b.textContent='🎙';}
+    if(voiceMode&&!state.callEnded){
+      // Clear input before listening so old text doesn't persist
+      const inp=document.getElementById('msg-input');
+      if(inp){inp.value='';inp.style.height='auto';}
+      document.getElementById('transcript-preview').textContent='';
+      setTimeout(()=>{if(voiceMode&&!state.callEnded)startListening();},500);
+    }
+  };
+  utt.onerror=()=>{isSpeaking=false;};
+  synth.speak(utt);
+}
 
-document.addEventListener('DOMContentLoaded', () => {
-  initVoice();
-  // Detect local file — API calls won't work from file:// protocol
-  if (window.location.protocol === 'file:') {
-    document.getElementById('env-warning').style.display = 'block';
-    console.warn('Running as local file — API calls to api.anthropic.com will be blocked by browser security. Open this file as a claude.ai artifact for full functionality.');
-  }
-  const inp = document.getElementById('msg-input');
-  inp.addEventListener('keydown', e => {
-    if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendMessage(); }
-  });
-  inp.addEventListener('input', () => {
-    inp.style.height = 'auto';
-    inp.style.height = Math.min(inp.scrollHeight, 120) + 'px';
-  });
-});
-</script>
+// =============================
+// SIMULATOR DATA
+// ============================================================</script>
 </body>
 </html>
