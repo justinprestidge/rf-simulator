@@ -145,7 +145,7 @@ label{font-size:11px;color:var(--text2);display:block;margin-bottom:3px;}
 @keyframes pulse-ring{0%{box-shadow:0 0 0 0 #ef444440;}70%{box-shadow:0 0 0 10px transparent;}100%{box-shadow:0 0 0 0 transparent;}}
 .voice-toggle{display:flex;align-items:center;gap:8px;padding:6px 12px;background:var(--panel2);border:1px solid var(--border);border-radius:20px;cursor:pointer;font-size:11px;color:var(--text2);}
 .voice-toggle.active{background:#10b98120;border-color:#10b981;color:#34d399;}
-.transcript-preview{font-size:12px;color:var(--text3);font-style:italic;padding:4px 8px;min-height:20px;text-align:center;}
+.transcript-preview{font-size:12px;color:var(--text3);font-style:italic;padding:4px 8px;min-height:20px;text-align:center;cursor:pointer;border-radius:6px;transition:background .15s;}.transcript-preview:hover{background:var(--panel2)}
 </style>
 </head>
 <body>
@@ -310,7 +310,7 @@ label{font-size:11px;color:var(--text2);display:block;margin-bottom:3px;}
 
       <div class="hint-bar" id="hint-bar"></div>
 
-      <div class="transcript-preview" id="transcript-preview"></div>
+      <div class="transcript-preview" id="transcript-preview" onclick="if(window._voiceAccum){clearTimeout(window._voiceCommitTimer);const t=window._voiceAccum.trim();window._voiceAccum='';stopListening();document.getElementById('msg-input').value=t;sendMessage();}" title="Tap to send now"></div>
       <div class="input-area">
         <textarea class="msg-input" id="msg-input" placeholder="Type your response to the customer... (Enter to send, Shift+Enter for new line)" rows="1"></textarea>
         <button class="voice-btn idle" id="mic-btn" onclick="toggleListening()" style="display:none">🎙</button>
@@ -729,10 +729,30 @@ function beginCall() {
   state.callStart = Date.now();
   state.timerInterval = setInterval(updateTimer, 1000);
   updatePhase(2);
+  state.waitingForAssociate = true;  // customer answered, now waiting for associate to speak
 
-  // Opening: customer picks up
-  const opening=typeof getOpeningLine==='function'?getOpeningLine(state.difficulty,state.customerName):'Hello?';
-  setTimeout(()=>{addMessage('customer',opening);},800);
+  // Customer picks up — phone ring sound effect via oscillator
+  try {
+    const ctx = new (window.AudioContext || window.webkitAudioContext)();
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+    osc.connect(gain); gain.connect(ctx.destination);
+    osc.frequency.value = 480; osc.type = 'sine';
+    gain.gain.setValueAtTime(0.15, ctx.currentTime);
+    gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.4);
+    osc.start(); osc.stop(ctx.currentTime + 0.4);
+  } catch(e) {}
+
+  const opening = typeof getOpeningLine==='function'
+    ? getOpeningLine(state.difficulty, state.customerName) : 'Hello?';
+  setTimeout(() => {
+    addMessage('customer', opening);
+    // Show prompt to associate to speak
+    addSystem('📞 Customer answered — introduce yourself and state the purpose of your call.');
+    if (voiceMode) {
+      setTimeout(() => startListening(), 600);
+    }
+  }, 900);
 }
 
 function updateTimer() {
@@ -1210,12 +1230,28 @@ function initVoice() {
         const t = e.results[j][0].transcript;
         if (e.results[j].isFinal) fin += t; else interim += t;
       }
-      document.getElementById('transcript-preview').textContent = interim || fin;
+
+      // Accumulate transcript — don't send yet
+      if (fin) window._voiceAccum = (window._voiceAccum || '') + ' ' + fin;
+      const display = (window._voiceAccum || '') + (interim ? ' ' + interim : '');
+      document.getElementById('transcript-preview').textContent = display.trim() || '🎙 Listening...';
+      document.getElementById('msg-input').value = (window._voiceAccum || '').trim();
+
+      // Reset the commit timer on every new result
+      clearTimeout(window._voiceCommitTimer);
       if (fin) {
-        document.getElementById('msg-input').value = fin;
-        document.getElementById('transcript-preview').textContent = '';
-        stopListening();
-        sendMessage();
+        // Show a visual countdown hint
+        document.getElementById('transcript-preview').style.color = 'var(--accent)';
+        window._voiceCommitTimer = setTimeout(() => {
+          const final = (window._voiceAccum || '').trim();
+          if (final) {
+            document.getElementById('transcript-preview').textContent = '';
+            document.getElementById('transcript-preview').style.color = '';
+            window._voiceAccum = '';
+            stopListening();
+            sendMessage();
+          }
+        }, 1800); // wait 1.8 seconds of silence before sending
       }
     };
     recognition.onerror = function() { stopListening(); };
@@ -1354,7 +1390,15 @@ function buildVoicePicker(scored) {
 function toggleVoiceMode(){voiceMode=!voiceMode;const t=document.getElementById('voice-toggle'),l=document.getElementById('voice-toggle-label'),m=document.getElementById('mic-btn'),vs=document.getElementById('voice-select'),inp=document.getElementById('msg-input');if(voiceMode){if(!voiceSupported){addSystem('⚠ Use Chrome/Edge for voice.');voiceMode=false;return;}t.classList.add('active');l.textContent='ON';m.style.display='flex';vs.style.display='block';inp.placeholder='Speak with 🎙 or type';assignCustomerVoice();}else{t.classList.remove('active');l.textContent='OFF';m.style.display='none';vs.style.display='none';stopListening();synth.cancel();}}
 function toggleListening(){if(isListening)stopListening();else startListening();}
 function startListening(){if(!recognition||isSpeaking)return;isListening=true;const b=document.getElementById('mic-btn');b.className='voice-btn listening';b.textContent='🔴';document.getElementById('transcript-preview').textContent='🎙 Listening...';try{recognition.start();}catch(e){stopListening();}}
-function stopListening(){isListening=false;const b=document.getElementById('mic-btn');if(b){b.className='voice-btn idle';b.textContent='🎙';}document.getElementById('transcript-preview').textContent='';try{recognition.stop();}catch(e){}}
+function stopListening(){
+  isListening=false;
+  clearTimeout(window._voiceCommitTimer);
+  const b=document.getElementById('mic-btn');
+  if(b){b.className='voice-btn idle';b.textContent='🎙';}
+  const tp=document.getElementById('transcript-preview');
+  if(tp){tp.textContent='';tp.style.color='';}
+  try{recognition.stop();}catch(e){}
+}
 function updateVoice() {
   const sel = document.getElementById('voice-select');
   if (sel && window._voicePool) {
@@ -1380,7 +1424,14 @@ document.addEventListener('DOMContentLoaded', () => {
   }
   const inp = document.getElementById('msg-input');
   inp.addEventListener('keydown', e => {
-    if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendMessage(); }
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault();
+      // Cancel any pending voice commit and send immediately
+      clearTimeout(window._voiceCommitTimer);
+      window._voiceAccum = '';
+      stopListening();
+      sendMessage();
+    }
   });
   inp.addEventListener('input', () => {
     inp.style.height = 'auto';
