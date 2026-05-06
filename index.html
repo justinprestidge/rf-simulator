@@ -1227,38 +1227,65 @@ function updatePhase(n) {
 
 let voiceMode=false,recognition=null,synth=window.speechSynthesis,selectedVoice=null,isListening=false,isSpeaking=false,voiceSupported=false;
 function initVoice() {
-  // Speech recognition setup
-  const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
-  if (SR) {
-    voiceSupported = true;
-    recognition = new SR();
-    recognition.continuous = false;
-    recognition.interimResults = true;
-    recognition.lang = 'en-US';
-    recognition.onresult = function(e) {
-      let interim = '', fin = '';
-      for (let j = e.resultIndex; j < e.results.length; j++) {
-        const t = e.results[j][0].transcript;
-        if (e.results[j].isFinal) fin += t; else interim += t;
-      }
-      document.getElementById('transcript-preview').textContent = interim || fin;
-      if (fin) {
-        document.getElementById('msg-input').value = fin;
-        document.getElementById('transcript-preview').textContent = '';
-        stopListening();
-        sendMessage();
-      }
-    };
-    recognition.onerror = function() { stopListening(); };
-    recognition.onend = function() { if (isListening) stopListening(); };
+  // Try to init speech recognition — retry after 1s in case browser hasn't loaded it yet
+  function tryInit() {
+    const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+    if (!SR) {
+      // Retry once after a delay — some browsers initialize speech API after DOM load
+      setTimeout(() => {
+        const SR2 = window.SpeechRecognition || window.webkitSpeechRecognition;
+        if (SR2) setupRecognition(SR2);
+        // If still not available, voiceSupported stays false — handled in toggleVoiceMode
+      }, 1500);
+      return;
+    }
+    setupRecognition(SR);
   }
 
-  // Load and rank all English voices
+  function setupRecognition(SR) {
+    voiceSupported = true;
+    try {
+      recognition = new SR();
+      recognition.continuous = false;
+      recognition.interimResults = true;
+      recognition.lang = 'en-US';
+      recognition.onresult = function(e) {
+        let interim = '', fin = '';
+        for (let j = e.resultIndex; j < e.results.length; j++) {
+          const t = e.results[j][0].transcript;
+          if (e.results[j].isFinal) fin += t; else interim += t;
+        }
+        document.getElementById('transcript-preview').textContent = interim || fin;
+        if (fin) {
+          document.getElementById('msg-input').value = fin;
+          document.getElementById('transcript-preview').textContent = '';
+          stopListening();
+          sendMessage();
+        }
+      };
+      recognition.onerror = function(e) {
+        stopListening();
+        if (e.error === 'not-allowed') {
+          addSystem('⚠ Microphone access denied. Click the camera/mic icon in your browser address bar and allow microphone access, then try again.');
+        } else if (e.error === 'network') {
+          addSystem('⚠ Voice recognition network error. Check your connection — speech recognition requires internet access to Google\'s servers.');
+        } else if (e.error === 'service-not-allowed') {
+          addSystem('⚠ Speech service blocked — this can happen on HTTP (non-secure) connections. Make sure you\'re using the https:// URL.');
+        }
+      };
+      recognition.onend = function() { if (isListening) stopListening(); };
+    } catch(e) {
+      voiceSupported = false;
+      console.warn('Speech recognition init failed:', e);
+    }
+  }
+
+  tryInit();
+
+  // Load and rank voices
   function loadVoices() {
     const all = synth.getVoices().filter(v => v.lang.startsWith('en'));
     if (!all.length) return;
-
-    // Score voices — Neural/Natural/Premium rank highest
     function scoreVoice(v) {
       const n = v.name.toLowerCase();
       if (n.includes('neural') || n.includes('natural') || n.includes('premium')) return 3;
@@ -1271,8 +1298,6 @@ function initVoice() {
       if (n.includes('microsoft')) return 1;
       return 0;
     }
-
-    // Separate male and female voices
     function isMale(v) {
       const n = v.name.toLowerCase();
       return n.includes('david') || n.includes('mark') || n.includes('guy') ||
@@ -1280,29 +1305,22 @@ function initVoice() {
              n.includes('daniel') || n.includes('jason') || n.includes('james') ||
              n.includes('male') || n.includes('man');
     }
-
     const scored = all.map(v => ({ v, score: scoreVoice(v), male: isMale(v) }))
                       .sort((a, b) => b.score - a.score);
-
     window._voicePool = {
       all:    scored.map(x => x.v),
       male:   scored.filter(x =>  x.male).map(x => x.v),
       female: scored.filter(x => !x.male).map(x => x.v),
       best:   scored[0]?.v || null,
     };
-
-    // Auto-assign voice based on customer profile
     assignCustomerVoice();
-
-    // Populate the voice picker dropdown
     buildVoicePicker(scored);
   }
-
   synth.onvoiceschanged = loadVoices;
   loadVoices();
 }
 
-// Assign a voice that matches the customer's demographic
+
 function assignCustomerVoice() {
   if (!window._voicePool) return;
   const pool = window._voicePool;
@@ -1382,7 +1400,69 @@ function buildVoicePicker(scored) {
 }
 
 
-function toggleVoiceMode(){voiceMode=!voiceMode;const t=document.getElementById('voice-toggle'),l=document.getElementById('voice-toggle-label'),m=document.getElementById('mic-btn'),vs=document.getElementById('voice-select'),inp=document.getElementById('msg-input');if(voiceMode){if(!voiceSupported){addSystem('⚠ Use Chrome/Edge for voice.');voiceMode=false;return;}t.classList.add('active');l.textContent='ON';m.style.display='flex';vs.style.display='block';inp.placeholder='Speak with 🎙 or type';assignCustomerVoice();}else{t.classList.remove('active');l.textContent='OFF';m.style.display='none';vs.style.display='none';stopListening();synth.cancel();}}
+function toggleVoiceMode() {
+  voiceMode = !voiceMode;
+  const t   = document.getElementById('voice-toggle');
+  const l   = document.getElementById('voice-toggle-label');
+  const m   = document.getElementById('mic-btn');
+  const vs  = document.getElementById('voice-select');
+  const inp = document.getElementById('msg-input');
+
+  if (voiceMode) {
+    // Re-check in case init was deferred
+    if (!voiceSupported) {
+      const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+      if (SR) {
+        voiceSupported = true;
+        // Re-run init if recognition wasn't set up
+        if (!recognition) initVoice();
+      } else {
+        addSystem('⚠ Speech recognition not available in this browser. Voice mode requires Chrome or Edge on desktop.');
+        voiceMode = false;
+        return;
+      }
+    }
+    // Request mic permission upfront so we get a clear error if denied
+    if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
+      navigator.mediaDevices.getUserMedia({ audio: true })
+        .then(stream => {
+          // Permission granted — stop the stream immediately (recognition handles its own)
+          stream.getTracks().forEach(t => t.stop());
+          t.classList.add('active');
+          l.textContent = 'ON';
+          m.style.display = 'flex';
+          vs.style.display = 'block';
+          inp.placeholder = 'Speak with 🎙 or type';
+          assignCustomerVoice();
+        })
+        .catch(err => {
+          voiceMode = false;
+          if (err.name === 'NotAllowedError' || err.name === 'PermissionDeniedError') {
+            addSystem('⚠ Microphone access denied. Click the 🔒 or 🎙 icon in your browser address bar, select "Allow" for microphone, then refresh the page and try again.');
+          } else if (err.name === 'NotFoundError') {
+            addSystem('⚠ No microphone detected on this device.');
+          } else {
+            addSystem('⚠ Could not access microphone: ' + err.message);
+          }
+        });
+    } else {
+      // Fallback for older browsers — just try to enable
+      t.classList.add('active');
+      l.textContent = 'ON';
+      m.style.display = 'flex';
+      vs.style.display = 'block';
+      inp.placeholder = 'Speak with 🎙 or type';
+      assignCustomerVoice();
+    }
+  } else {
+    t.classList.remove('active');
+    l.textContent = 'OFF';
+    m.style.display = 'none';
+    vs.style.display = 'none';
+    stopListening();
+    synth.cancel();
+  }
+}
 function toggleListening(){if(isListening)stopListening();else startListening();}
 function startListening(){if(!recognition||isSpeaking)return;isListening=true;const b=document.getElementById('mic-btn');b.className='voice-btn listening';b.textContent='🔴';document.getElementById('transcript-preview').textContent='🎙 Listening...';try{recognition.start();}catch(e){stopListening();}}
 function stopListening(){
