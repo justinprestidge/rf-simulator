@@ -330,6 +330,102 @@ label{font-size:11px;color:var(--text2);display:block;margin-bottom:3px;}
 // ============================================================
 // SIMULATOR DATA
 // ============================================================
+
+// ============================================================
+// BUREAU ATTRIBUTE RANDOMIZER
+// ============================================================
+const LENDER_POOLS = {
+  FC: ['OneMain Financial','Marlin Finance','World Finance','Regional Finance','Security Finance',
+       'Beneficial Finance','Lendmark Financial','Heights Finance','TitleMax','SunUp Financial'],
+  BC: ['Capital One','Credit One Bank','Merrick Bank','First Premier Bank','Destiny Card',
+       'Indigo Mastercard','Mission Lane','Total Visa','Milestone Card','Surge Mastercard'],
+  AC: ['Westlake Financial','DriveTime','CarMax Auto','AmeriCredit','Santander Consumer',
+       'CAC (Credit Acceptance)','Prestige Financial','Consumer Portfolio Services','JM Family'],
+  FA: ['Wells Fargo Auto','Chase Auto','Capital One Auto','TD Auto Finance','Ally Financial',
+       'Bank of America Auto','US Bank Auto','Southeast Toyota Finance','Honda Financial'],
+  FM: ['Rocket Mortgage','Mr. Cooper','PHH Mortgage','LoanDepot','Caliber Home Loans'],
+  ST: ["Conn's HomePlus",'Rent-A-Center',"Aaron's",'FlexShopper','Genesis Financial'],
+};
+const VEHICLE_POOLS = {
+  male:   [['Ford','F-150'],['Chevy','Silverado'],['Ram','1500'],['GMC','Sierra'],
+           ['Toyota','Tacoma'],['Ford','Ranger'],['Chevy','Colorado'],['Nissan','Frontier'],
+           ['Dodge','Charger'],['Chevy','Camaro']],
+  female: [['Toyota','Camry'],['Honda','Civic'],['Nissan','Altima'],['Hyundai','Elantra'],
+           ['Kia','Forte'],['Chevy','Malibu'],['Ford','Fusion'],['Toyota','Corolla'],
+           ['Honda','HR-V'],['Kia','Soul']],
+  suv:    [['Ford','Explorer'],['Chevy','Traverse'],['Toyota','RAV4'],['Honda','CR-V'],
+           ['Hyundai','Tucson'],['Kia','Sorento'],['Nissan','Rogue'],['Jeep','Cherokee'],
+           ['Ford','Escape'],['Chevy','Equinox']],
+};
+const FEMALE_FIRST_NAMES = ['patricia','sandra','tamika','latoya','angela','deborah','michelle',
+  'vanessa','keisha','tiffany','crystal','stephanie','renee','yolanda','lisa','jennifer',
+  'karen','susan','amanda','ashley','jessica','brittany','brenda','shirley','carol',
+  'ruth','dorothy','betty','helen','martha','alicia','monica','natasha','tonya',
+  'monique','carla','denise','april','donna','gloria','diana','paula','cynthia'];
+
+function rInt(min, max) { return Math.floor(Math.random()*(max-min+1))+min; }
+function rFrom(arr) { return arr[Math.floor(Math.random()*arr.length)]; }
+function rVar(base, pct) {
+  const d = Math.round(base*pct/100);
+  return Math.round((base+rInt(-d,d))/50)*50;
+}
+function pickLender(code) { return rFrom(LENDER_POOLS[code]||LENDER_POOLS.FC); }
+
+function applyBureauVariance(template, customerName) {
+  const firstName = (customerName||'').split(' ')[0].toLowerCase();
+  const isFemale  = FEMALE_FIRST_NAMES.includes(firstName);
+
+  // Vary FICO ±25, income ±18%
+  const newFico   = Math.max(520, Math.min(720, template.fico + rInt(-25,25)));
+  const newIncome = Math.max(1800, rVar(template.income, 18));
+
+  // Randomize each account — new lender from same code pool, varied balance ±25%
+  const newAccounts = (template.accounts||[]).map(a => {
+    const newBal = Math.max(200, rVar(a.balance, 25));
+    const newPmt = Math.max(25, Math.round(newBal*(a.payment/Math.max(a.balance,1))/5)*5);
+    return { ...a, creditor: pickLender(a.code), balance: newBal, payment: newPmt };
+  });
+
+  const totalDebt = newAccounts.reduce((s,a) => s+a.payment, 0);
+  const residual  = newIncome - totalDebt;
+  const dtiPct    = Math.round(totalDebt/newIncome*100);
+  const residualLabel = residual>600
+    ? `Solid residual — $${residual.toLocaleString()}/mo after debt`
+    : residual>200
+    ? `Tight — $${residual.toLocaleString()}/mo residual (DTI ${dtiPct}%)`
+    : `Very tight — $${residual.toLocaleString()}/mo residual (DTI ${dtiPct}%)`;
+
+  // Randomize vehicle
+  let newVehicle = null;
+  if (template.vehicle) {
+    const pool  = isFemale ? VEHICLE_POOLS.female : Math.random()>0.4 ? VEHICLE_POOLS.male : VEHICLE_POOLS.suv;
+    const [mk, mo] = rFrom(pool);
+    const yr    = rInt(2015, 2023);
+    const estV  = Math.max(3000, rVar(template.vehicle.est_value, 30));
+    const lienB = template.vehicle.lien_balance > 0
+      ? Math.max(0, Math.min(rVar(template.vehicle.lien_balance, 35), estV - 500))
+      : 0;
+    newVehicle = {
+      ...template.vehicle,
+      year: yr, make: mk, model: mo,
+      est_value: estV,
+      lien_balance: lienB,
+      lien_holder: lienB > 0 ? pickLender(Math.random()>0.5?'FA':'AC') : 'Free & Clear',
+    };
+  }
+
+  return {
+    ...template,
+    fico: newFico,
+    income: newIncome,
+    accounts: newAccounts,
+    total_monthly_debt: totalDebt,
+    residual_income: residualLabel,
+    vehicle: newVehicle,
+  };
+}
+
+
 const ARCHETYPE_CONFIGS = {
   'The Hustler':       {focus:'qualifying and converting calls to applications',         primary:'lcc', coaching:['asking qualifying questions','discovering financial needs early','transitioning from rapport to offer']},
   'Strong Opener':     {focus:'closing the application and asking for the business',      primary:'pcr', coaching:['asking for commitment','overcoming late-stage objections','setting the appointment']},
@@ -472,24 +568,31 @@ function startSimulation() {
 
   // Resolve bureau
   const bureauKeys = Object.keys(BUREAU_TEMPLATES);
+  // Select base bureau template
+  let baseTemplate;
   if (bureaUSel === 'auto') {
-    // Match bureau to call type and difficulty
     if (state.callType === 'lcc') {
-      state.bureau = BUREAU_TEMPLATES['lcc_prospect'];
+      baseTemplate = BUREAU_TEMPLATES['lcc_prospect'];
     } else if (state.difficulty === 'resistant' || state.difficulty === 'irrational') {
-      state.bureau = BUREAU_TEMPLATES['challenging_thin'];
+      const resistProfiles = ['resistant_spouse','scam_skeptic','cosigner_candidate'];
+      baseTemplate = BUREAU_TEMPLATES[rFrom(resistProfiles)];
+    } else if (state.difficulty === 'cooperative') {
+      baseTemplate = BUREAU_TEMPLATES[Math.random()>0.5?'stable_pcr':'former_customer'];
     } else {
-      state.bureau = Math.random() > 0.5 ? BUREAU_TEMPLATES['stable_pcr'] : BUREAU_TEMPLATES['consolidation_candidate'];
+      const allKeys = Object.keys(BUREAU_TEMPLATES);
+      baseTemplate = BUREAU_TEMPLATES[rFrom(allKeys)];
     }
   } else {
-    state.bureau = BUREAU_TEMPLATES[bureaUSel];
+    baseTemplate = BUREAU_TEMPLATES[bureaUSel] || BUREAU_TEMPLATES['consolidation_candidate'];
   }
-
+  // Apply attribute variance — different every call even on same profile
   const cp=generateCustomerProfile();
   state.customerName=cp.name;
   state.customerOccupation=cp.occupation;
   state.customerSituation=cp.situation;
   state.customerFlavor=cp.flavor;
+  state.bureau = applyBureauVariance(baseTemplate, state.customerName);
+
   state.conversation = [];
   state.turnCount = 0;
   state.callEnded = false;
@@ -924,7 +1027,20 @@ ${flav?`Personality: ${flav.desc}`:''}${state.customerSituation?`\nSituation: ${
 Accounts: ${bureauSum}. ${vCtx}. Monthly debt $${b.total_monthly_debt}/mo. ${b.residual_income}.
 Call: ${state.callType==='pcr'?'renewing your Republic Finance loan':'converting a pre-approved live check'}.
 ${b.customer_credit_awareness}
-Likely objections: ${(b.likely_objections||[]).join('; ')}
+Likely objections (from profile): ${(b.likely_objections||[]).join('; ')}
+Additional natural objections you MAY use (pick what fits your personality and mood — don't use all of them, just what a real person would raise):
+- "I just don't like debt" — philosophical resistance, not about money
+- "My spouse/partner handles all our finances" — deflect to third party
+- "I already tried to get a loan somewhere else and it didn't go well" — shame or prior bad experience
+- "I'm trying to pay things off, not add more" — genuinely good instinct, needs reframing
+- "What's the catch" — distrust of financial companies generally
+- "I don't have time for this right now" — situational, not personal
+- "You all already gave me a loan, why do I need another one" — loyal customer confusion
+- "I just got my credit score up and I don't want to mess it up" — credit pride (USE SPARINGLY — not every call)
+- "I need to think about it" — genuine hesitation
+- "Things are tight right now" — financial anxiety, not an objection to Republic specifically
+- "Can you just send me something in the mail" — avoidance
+NOTE: The credit inquiry objection is valid but OVERUSED. Only raise it if the customer profile specifically lists it as a likely objection OR if the associate mentions a credit check unprompted. Do not default to it.
 Warms you up: ${(b.responds_well_to||[]).join('; ')}
 Difficulty: ${dmap[state.difficulty]||dmap.hesitant}
 
@@ -949,8 +1065,12 @@ ${state.customerName}: `;
   const raw=data.content?.[0]?.text||"Yeah... go ahead.";
   let mood=state.customerMood;
   const rl=raw.toLowerCase();
-  if(rl.includes('makes sense')||rl.includes('tell me more'))mood='warming';
-  if(rl.includes('not interested'))mood='resistant';
+  // Natural mood shifts based on conversation quality
+  if(rl.includes('makes sense')||rl.includes('tell me more')||rl.includes('actually')||rl.includes('that does sound'))mood='warming';
+  if(rl.includes('not interested')||rl.includes('stop calling')||rl.includes('already told'))mood='resistant';
+  if(rl.includes('appreciate')||rl.includes('that helps')||rl.includes('good to know'))mood='warming';
+  // Mid-call mood shift: after 4+ turns, cooperative customers who haven't been engaged can cool
+  if(state.turnCount>=4&&mood==='neutral'&&(state.weakTurns||0)>=2)mood='resistant';
   const em=raw.match(/\[CALL_END:(converted|followup|relationship|declined)\]/);
   if(em)return{content:raw.replace(/\[CALL_END:[^\]]+\]/,'').trim(),callEnded:true,outcome:em[1],mood};
   return{content:raw.trim(),callEnded:false,mood};
