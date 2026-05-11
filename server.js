@@ -36,7 +36,7 @@ if (!API_KEY) {
 }
 
 // ── Middleware ──
-app.use(express.json({ limit: '50kb' }));
+app.use(express.json({ limit: '500kb' }));
 
 // Optional: restrict to your company IP range
 // Uncomment and set your company IP/CIDR if you want IP-based access control
