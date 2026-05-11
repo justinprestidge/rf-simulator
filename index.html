@@ -146,6 +146,16 @@ label{font-size:11px;color:var(--text2);display:block;margin-bottom:3px;}
 .voice-toggle{display:flex;align-items:center;gap:8px;padding:6px 12px;background:var(--panel2);border:1px solid var(--border);border-radius:20px;cursor:pointer;font-size:11px;color:var(--text2);}
 .voice-toggle.active{background:#10b98120;border-color:#10b981;color:#34d399;}
 .transcript-preview{font-size:12px;color:var(--text3);font-style:italic;padding:4px 8px;min-height:20px;text-align:center;}
+
+@media print {
+  .call-panel, .setup-view, #call-view, .voice-toggle, #voice-toggle, .status-bar { display: none !important; }
+  #debrief-view { display: block !important; }
+  body { background: white !important; color: black !important; }
+  .score-item { border: 1px solid #ccc !important; background: #f9f9f9 !important; }
+  button { display: none !important; }
+  .debrief-header { color: black !important; }
+}
+
 </style>
 </head>
 <body>
@@ -178,6 +188,8 @@ label{font-size:11px;color:var(--text2);display:block;margin-bottom:3px;}
         <div class="panel-label">Associate Profile</div>
         <label>Associate Name</label>
         <input type="text" id="associate-name" placeholder="Enter name or leave blank" value="">
+        <label style="margin-top:8px">Manager Email <span style="color:var(--text3);font-weight:400;font-size:10px">(optional)</span></label>
+        <input type="email" id="manager-email" placeholder="manager@republicfinance.com" style="margin-top:4px">
         <label>Archetype</label>
         <select id="archetype-select">
           <option value="random">🎲 Random Scenario</option>
@@ -426,6 +438,218 @@ function applyBureauVariance(template, customerName) {
 }
 
 
+
+// ============================================================
+// CUSTOMER BACKSTORIES
+// Expand upon the bureau profile with a living, breathing person.
+// Used in getCustomerResponse to give the AI behavioral anchors.
+// ============================================================
+const CUSTOMER_BACKSTORIES = {
+
+  consolidation_candidate: `
+BACKSTORY & PERSONALITY:
+You are a real person with a full life — not just a credit profile. You are likely between 30-55, blue collar background, and your personality reflects your occupation. If you're a warehouse supervisor, you're used to being in charge and efficient with your time. If you're a truck driver, you're independent and a little guarded with strangers. If you're a bus driver, you're on a strict schedule — picking up kids, getting them somewhere safely — and you genuinely don't have time for a long call.
+
+You have built your life using credit responsibly. You have one to four kids at various ages, or possibly grandchildren if you're on the older end. You are proud of what you've built. But life happens. The AC went out in July and you put it on a credit card. One of your kids needed braces. Your transmission went out six months ago. Maybe your kid is in travel baseball or competitive cheer and the equipment costs are relentless. You didn't overspend — life just costs more than it used to.
+
+You are NOT drowning. But you are aware that you're carrying more payment obligations than you'd like. You would genuinely welcome a way to simplify, but your instinct is skepticism first — you've heard pitches before. You respond well to someone who actually listens and finds out what's going on in your life before trying to sell you something. If the associate mentions your kids or activities, you warm up noticeably.
+
+If you are married, your spouse's opinion matters to you and you might reference them. If you're a single parent, you're proud of handling everything yourself and that pride is sensitive — don't underestimate you.
+
+You want to provide for your family. Sometimes you feel the weight of it. Someone who genuinely tries to save you money — not just pitch you — could actually help. But they have to earn that trust first.
+
+KEY BEHAVIORAL SIGNALS:
+- Opens cautiously, especially on a third or fourth call
+- Warms up when associate shows they prepared and knows your situation
+- Responds to specific dollar amounts ("your payment could go from $340 to $210")
+- Mentions a specific life event if associate asks open-ended questions
+- Gets short if associate just pitches without asking anything
+- Will reference kids, work schedule, or a recent expense if the conversation goes there naturally
+`,
+
+  stable_pcr: `
+BACKSTORY & PERSONALITY:
+You are a long-term Republic Finance customer. You have never been late. Not once. That matters to you more than most people would understand — you see it as a reflection of your character, not just your finances.
+
+You have a professional demeanor. You might be a teacher, an office manager, a supervisor, a county worker — someone who takes their responsibilities seriously. You think of yourself as a smart consumer. You research things. You read the fine print. You are not easily impressed.
+
+You are proud that your loan is "almost paid down." In your mind, having a balance is something you tolerate, not embrace. The idea of starting over with a bigger balance makes you uncomfortable — not because you can't afford it, but because it feels like going backwards.
+
+But you do have needs. Your roof is getting old. You've been thinking about a used car for your teenager. There's a home repair you've been putting off. You just haven't connected those needs to the idea of renewing a loan — in your mind they're separate.
+
+You respond well to:
+- Being acknowledged for your payment history ("I pulled up your account and you've been exceptional")
+- Being treated as intelligent ("I wanted to show you the numbers so you can decide")
+- Discovery questions that let you share what's on your mind
+- Being given information and space to make your own decision
+
+You do NOT respond well to:
+- Being pressured or made to feel like you need to act fast
+- Generic pitches that don't acknowledge your specific history
+- Being treated like a transaction
+
+If the associate takes the time to genuinely understand what's going on in your life and presents this as a tool rather than a product, you can be won over. But they have to earn it through patience and precision.
+
+KEY BEHAVIORAL SIGNALS:
+- Opens politely but guarded
+- Volunteers that the account is "almost paid off" early in the conversation
+- Responds warmly when payment history is acknowledged
+- Will share a real need if asked the right open-ended question
+- Softens when associate treats them as a smart consumer
+- Can be closed with the right specific benefit — lower payment on a need they already have
+`,
+
+  lcc_prospect: `
+BACKSTORY & PERSONALITY:
+You received a check in the mail from Republic Finance and you cashed it. You may or may not have fully read the terms on the back — you skimmed them, honestly. The check was for a real need you had — a car repair, a bill you were behind on, maybe just a cash cushion. You deposited it like you would a rebate check.
+
+You are probably between 28-45. You live a somewhat fast-paced life. You are digitally oriented — you pay bills online, you handle things through apps, you're not used to calling a company. The fact that Republic Finance is now calling you feels slightly odd. You're not alarmed, but you're curious and a little suspicious simultaneously.
+
+You have decent credit overall. You have a job that reflects that — maybe healthcare, tech-adjacent, education, insurance, or a white-collar trade. You are used to things being relatively easy and self-service. The idea that cashing a check has now created an account you need to manage feels like more friction than you expected.
+
+You respond well to:
+- Clear, simple explanation of what you actually signed up for
+- Reassurance about privacy ("we don't share your information")
+- Efficiency — you appreciate when someone gets to the point
+- Finding out there might be more available to you if you need it
+
+You are mildly resistant to:
+- Long explanations that feel like a legal disclaimer
+- Being made to feel like you did something wrong by cashing the check
+- Pressure to do anything "right now"
+
+You are OPEN to converting to a larger loan if the process sounds simple and the benefit is clear. Your original need may not have been fully solved by the check amount — if the associate finds that out, there's a real opportunity. But they have to ask. You won't volunteer it unprompted.
+
+KEY BEHAVIORAL SIGNALS:
+- Might ask "wait, so what exactly is this account?" early on
+- Responds well to simple plain-English explanations
+- Warms up when privacy and process are explained clearly
+- Will mention the original reason they cashed the check if asked what they used it for
+- Open to a larger loan if associate discovers an unmet need
+- Gets impatient if the call feels complicated or bureaucratic
+`,
+
+};
+
+function getBackstory(bureauKey) {
+  return CUSTOMER_BACKSTORIES[bureauKey] || '';
+}
+
+
+
+// ============================================================
+// SHARE & EMAIL CALL RESULTS
+// ============================================================
+function buildResultsSummary(debrief, outcome) {
+  const b         = state.bureau;
+  const archConfig = ARCHETYPE_CONFIGS[state.archetype || 'random'];
+  const outcomeLabel = outcome==='converted'?'✅ Converted':outcome==='followup'?'📅 Follow-up Set':outcome==='relationship'?'🤝 Relationship Win':'📵 Declined';
+  const elapsed   = Math.floor((Date.now() - state.callStart) / 1000);
+  const duration  = `${Math.floor(elapsed/60)}m ${elapsed%60}s`;
+  const dateStr   = new Date().toLocaleDateString('en-US',{weekday:'short',month:'short',day:'numeric',year:'numeric'});
+  const timeStr   = new Date().toLocaleTimeString('en-US',{hour:'numeric',minute:'2-digit'});
+
+  const dims = [
+    {label:'Rapport',               max:20, score:debrief.rapport_score||0,   note:debrief.rapport_note||''},
+    {label:'Product Knowledge',     max:20, score:debrief.product_score||0,   note:debrief.product_note||''},
+    {label:'Objection Handling',    max:25, score:debrief.objection_score||0, note:debrief.objection_note||''},
+    {label:'Benefits Communication',max:15, score:debrief.benefits_score||0,  note:debrief.benefits_note||''},
+    {label:'Closing',               max:20, score:debrief.closing_score||0,   note:debrief.closing_note||''},
+  ];
+
+  return { b, archConfig, outcomeLabel, duration, dateStr, timeStr, dims, elapsed };
+}
+
+function shareByEmail(debrief, outcome) {
+  const { b, archConfig, outcomeLabel, duration, dateStr, timeStr, dims } = buildResultsSummary(debrief, outcome);
+
+  const overallLabel = debrief.outcome_label || (debrief.overall_score>=90?'Exceptional':debrief.overall_score>=80?'Strong':debrief.overall_score>=70?'Solid':debrief.overall_score>=60?'Developing':debrief.overall_score>=50?'Needs Work':'Needs Attention');
+
+  const dimLines = dims.map(d => `  ${d.label}: ${d.score}/${d.max}  — ${d.note}`).join('\n');
+  const worked   = (debrief.what_worked||[]).map(w=>`  • ${w}`).join('\n');
+  const opps     = (debrief.opportunities||[]).map(o=>`  • ${o}`).join('\n');
+
+  const callHistory = state.histProfile
+    ? `Call #${state.histProfile.calls+1} this month (${state.histProfile.label})`
+    : 'First contact';
+
+  const subject = encodeURIComponent(
+    `Simulator Call — ${state.associateName} — ${overallLabel} (${debrief.overall_score}/100) — ${dateStr}`
+  );
+
+  const body = encodeURIComponent(
+`Republic Finance Sales Call Simulator — Call Debrief
+${'='.repeat(55)}
+Associate:    ${state.associateName}
+Date/Time:    ${dateStr} at ${timeStr}
+Duration:     ${duration} (${state.turnCount} turns)
+
+SCENARIO
+  Profile:      ${b.label} | Tier ${b.tier} | FICO ~${b.fico}
+  Call Type:    ${state.callType==='pcr'?'PCR Renewal':'LCC Conversion'}
+  Difficulty:   ${DIFFICULTY_SETTINGS[state.difficulty]?.label||state.difficulty}
+  Call History: ${callHistory}
+  ${state.isAppreciationMonth?'⭐ Customer Appreciation Month':''}
+  Archetype:    ${state.archetype||'General'} — ${archConfig?.focus||''}
+
+OUTCOME: ${outcomeLabel}
+
+OVERALL SCORE: ${debrief.overall_score}/100 — ${overallLabel}
+${'─'.repeat(40)}
+${dimLines}
+
+WHAT WORKED
+${worked||'  (none noted)'}
+
+REPUBLIC WAY OPPORTUNITIES
+${opps||'  (none noted)'}
+
+COACHING NOTES
+${debrief.archetype_coaching||''}
+
+NEXT PRACTICE FOCUS
+${debrief.next_practice||''}
+
+CALL SUMMARY
+${debrief.summary||''}
+${'─'.repeat(40)}
+Sent from Republic Finance Sales Call Simulator`
+  );
+
+  const to = encodeURIComponent(state.managerEmail || '');
+  window.location.href = `mailto:${to}?subject=${subject}&body=${body}`;
+}
+
+function copyResultsToClipboard(debrief, outcome) {
+  const { b, archConfig, outcomeLabel, duration, dateStr, timeStr, dims } = buildResultsSummary(debrief, outcome);
+  const overallLabel = debrief.outcome_label || '';
+  const dimLines = dims.map(d=>`${d.label}: ${d.score}/${d.max}`).join(' | ');
+
+  const text =
+`${state.associateName} — Simulator Call — ${dateStr}
+Score: ${debrief.overall_score}/100 (${overallLabel}) | ${outcomeLabel}
+${dimLines}
+${debrief.summary||''}
+Next focus: ${debrief.next_practice||''}`;
+
+  navigator.clipboard.writeText(text).then(() => {
+    const btn = document.getElementById('copy-results-btn');
+    if (btn) { btn.textContent = '✓ Copied!'; setTimeout(()=>btn.textContent='📋 Copy Summary',2000); }
+  }).catch(() => {
+    // Fallback for browsers without clipboard API
+    const ta = document.createElement('textarea');
+    ta.value = text; document.body.appendChild(ta); ta.select();
+    document.execCommand('copy'); document.body.removeChild(ta);
+    const btn = document.getElementById('copy-results-btn');
+    if (btn) { btn.textContent = '✓ Copied!'; setTimeout(()=>btn.textContent='📋 Copy Summary',2000); }
+  });
+}
+
+function printDebrief() {
+  window.print();
+}
+
+
 const ARCHETYPE_CONFIGS = {
   'The Hustler':       {focus:'qualifying and converting calls to applications',         primary:'lcc', coaching:['asking qualifying questions','discovering financial needs early','transitioning from rapport to offer']},
   'Strong Opener':     {focus:'closing the application and asking for the business',      primary:'pcr', coaching:['asking for commitment','overcoming late-stage objections','setting the appointment']},
@@ -545,6 +769,11 @@ function startSimulation() {
   const diffSel    = document.getElementById('difficulty').value;
   const bureaUSel  = document.getElementById('bureau-profile').value;
   state.associateName = document.getElementById('associate-name').value.trim() || 'Associate';
+  const mgrEl = document.getElementById('manager-email');
+  state.managerEmail = mgrEl ? mgrEl.value.trim() : '';
+  if (state.managerEmail) {
+    try { localStorage.setItem('rf_mgr_email', state.managerEmail); } catch(e) {}
+  }
 
   // Resolve archetype
   state.archetype = archSelect === 'random' ? null : archSelect;
@@ -705,120 +934,150 @@ function renderBureau() {
 }
 
 function renderScenario() {
-  const diff = DIFFICULTY_SETTINGS[state.difficulty];
+  const diff      = DIFFICULTY_SETTINGS[state.difficulty];
   const callLabel = state.callType === 'pcr' ? 'PCR Renewal' : 'LCC Conversion';
-  const archLabel = state.archetype || 'General Practice';
   const archConfig = ARCHETYPE_CONFIGS[state.archetype || 'random'];
+
   document.getElementById('scenario-display').innerHTML = `
     <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:8px">
-      <span class="scenario-badge diff-${state.difficulty === 'irrational' ? 'irrational' : state.difficulty === 'resistant' ? 'hard' : state.difficulty === 'hesitant' ? 'med' : 'easy'}">${diff.icon} ${diff.label}</span>
+      <span class="scenario-badge diff-${state.difficulty==='irrational'?'irrational':state.difficulty==='resistant'?'hard':state.difficulty==='hesitant'?'med':'easy'}">${diff.icon} ${diff.label}</span>
       <span style="background:var(--panel2);border:1px solid var(--border);border-radius:10px;padding:2px 8px;font-size:10px;font-weight:700;color:var(--text2)">${callLabel}</span>
     </div>
     <div style="font-size:11px;color:var(--text2);margin-bottom:4px">${diff.desc}</div>
-    ${state.archetype ? `<div style="font-size:11px;color:var(--accent);margin-top:6px">Focus area: <em>${archConfig.focus}</em></div>` : ''}`;
+    ${state.archetype?`<div style="font-size:11px;color:var(--accent);margin-top:6px">Focus area: <em>${archConfig.focus}</em></div>`:''}`;
 
-  // ── Dynamic coach notes from bureau data ──
-  const b = state.bureau;
-  const veh = b.vehicle;
-  const archConf = ARCHETYPE_CONFIGS[state.archetype || 'random'];
-
-  // Bureau prep hints — specific to this customer's file
-  const prepHints = [];
-  if (b.prep_hooks && b.prep_hooks.length) {
-    b.prep_hooks.forEach(h => prepHints.push(h));
-  } else {
-    // Fallback: generate from accounts
-    b.accounts.forEach(a => {
-      if (a.balance > 2000) prepHints.push(`Reference ${a.creditor} — $${a.balance.toLocaleString()} ${a.type}`);
-    });
+  // Build coaching notes — wrapped in try/catch so errors never blank the panel
+  try {
+    buildCoachingNotes();
+  } catch(e) {
+    console.error('Coaching notes error:', e);
+    document.getElementById('coaching-cues-display').innerHTML =
+      `<div style="font-size:11px;color:var(--text3);padding:8px">Unable to load prep notes. Start the call — notes will appear here.</div>`;
   }
+}
+
+function buildCoachingNotes() {
+  const b   = state.bureau;
+  const veh = b.vehicle;
+
+  if (!b || !b.accounts) {
+    document.getElementById('coaching-cues-display').innerHTML =
+      '<div style="font-size:11px;color:var(--text3);padding:8px">Loading customer profile...</div>';
+    return;
+  }
+
+  // ── Bureau Prep Hints ──
+  const prepHints = [];
+
+  // Always show all accounts regardless of balance threshold
+  b.accounts.forEach(a => {
+    prepHints.push(`${a.creditor} — $${a.balance.toLocaleString()} ${a.type} (${a.code}) · $${a.payment}/mo`);
+  });
+
   if (veh) {
     const equity = veh.est_value - veh.lien_balance;
-    if (equity > 500) prepHints.push(`${veh.year} ${veh.make} ${veh.model} — ~$${equity.toLocaleString()} equity with ${veh.lien_holder}`);
-    else if (equity <= 0) prepHints.push(`${veh.year} ${veh.make} — financed with ${veh.lien_holder}, no equity yet — mention auto refi option`);
-    else prepHints.push(`${veh.year} ${veh.make} — vehicle on file with ${veh.lien_holder}`);
-  }
-  if (b.credit_inquiry_education) {
-    prepHints.push(`Inquiry objection likely — prep: "${b.credit_inquiry_education.key_point}"`);
-  }
-
-  // Consolidation opportunity
-  const highBalAccounts = b.accounts.filter(a => a.balance > 1500 && a.code !== 'FM');
-  if (highBalAccounts.length >= 2) {
-    const totalConsolidatable = highBalAccounts.reduce((s,a) => s+a.balance, 0);
-    const totalPayments = highBalAccounts.reduce((s,a) => s+a.payment, 0);
-    prepHints.push(`Consolidation opportunity: ${highBalAccounts.length} accounts totaling $${totalConsolidatable.toLocaleString()} ($${totalPayments}/mo in payments)`);
+    if (equity > 1000) {
+      prepHints.push(`${veh.year} ${veh.make} ${veh.model} — ~$${equity.toLocaleString()} equity · lien: ${veh.lien_holder} $${veh.lien_balance.toLocaleString()}`);
+    } else if (equity > 0) {
+      prepHints.push(`${veh.year} ${veh.make} ${veh.model} — minimal equity $${equity.toLocaleString()} · lien: ${veh.lien_holder}`);
+    } else {
+      prepHints.push(`${veh.year} ${veh.make} ${veh.model} — financed with ${veh.lien_holder}, no equity yet — mention refi option`);
+    }
   }
 
-  // Call history note
+  // Consolidation math — all non-mortgage accounts
+  const consolidatable = b.accounts.filter(a => a.code !== 'FM');
+  if (consolidatable.length >= 2) {
+    const totalBal = consolidatable.reduce((s,a) => s+a.balance, 0);
+    const totalPmt = consolidatable.reduce((s,a) => s+a.payment, 0);
+    prepHints.push(`💡 Consolidation: ${consolidatable.length} accounts · $${totalBal.toLocaleString()} total · $${totalPmt}/mo in payments`);
+  }
+
+  // Inquiry note only if profile specifically flags it
+  if (b.credit_inquiry_education && b.credit_inquiry_education.key_point) {
+    prepHints.push(`⚠ Inquiry objection likely for this profile: "${b.credit_inquiry_education.key_point}"`);
+  }
+
+  // Call history
   if (state.histProfile && state.histProfile.calls > 0) {
-    prepHints.push(`Call #${state.histProfile.calls + 1} this month — expect ${state.histProfile.opening_mood_note || 'some awareness of prior contact'}`);
+    prepHints.push(`📞 Call #${state.histProfile.calls+1} this month — ${state.histProfile.opening_mood_note||'aware of prior contact'}`);
   }
   if (state.isAppreciationMonth) {
-    prepHints.push(`Customer Appreciation Month — lead with guaranteed offer context to soften call fatigue`);
+    prepHints.push(`🎉 Customer Appreciation Month — lead with guaranteed offer to soften fatigue`);
   }
 
-  // Republic Way questions — specific to this customer's situation
+  // ── Republic Way Questions ──
   const rwQuestions = [];
 
-  // Opening discovery questions based on bureau profile
   if (b.call_type_fit && b.call_type_fit.includes('lcc')) {
-    rwQuestions.push(`"How did you end up using that check we sent you?" — opens LC conversation naturally`);
+    rwQuestions.push(`"How did you end up using that check we sent you?" — opens LC conversation`);
   }
-  if (highBalAccounts.length >= 2) {
-    rwQuestions.push(`"Who else are you paying besides us right now?" — surfaces consolidation opportunity`);
-    rwQuestions.push(`"What creditors would you pay off right now if you could?" — builds the case for consolidation`);
+  if (consolidatable.length >= 2) {
+    rwQuestions.push(`"Who else are you paying besides us right now?" — What's happening? (Q1)`);
+    rwQuestions.push(`"What creditors would you pay off first if you could?" — What do you want to happen? (Q2)`);
   }
   if (veh) {
-    rwQuestions.push(`"Who is your ${veh.make} financed with?" — confirms vehicle info, opens auto option`);
+    rwQuestions.push(`"Who is your ${veh.make} financed with right now?" — confirms asset, opens auto option`);
   }
 
-  // 6 Fundamental Questions tailored to this profile
-  const likelyObjection = (b.likely_objections && b.likely_objections[0]) || '';
-  rwQuestions.push(`"What's going on financially for you right now?" — What's happening? (Q1)`);
+  rwQuestions.push(`"What's been going on financially for you lately?" — open discovery (Q1)`);
+
   if (b.income < 3500) {
-    rwQuestions.push(`"Where would having a lower monthly payment help you most?" — How are you impacted? (Q4)`);
+    rwQuestions.push(`"Where would a lower monthly payment help your budget most?" — How are you impacted? (Q4)`);
   } else {
-    rwQuestions.push(`"What would you do with extra funds if you had them?" — What do you want to happen? (Q2)`);
-  }
-  if (likelyObjection) {
-    rwQuestions.push(`Likely objection: "${likelyObjection}" — acknowledge first, then reframe`);
-  }
-  rwQuestions.push(`"If we could show you a way to lower your monthly payments, would you want to see those numbers?" — If we could help you...? (Q5)`);
-
-  // Closing suggestion based on difficulty
-  if (state.difficulty === 'resistant' || state.difficulty === 'irrational') {
-    rwQuestions.push(`Close: "I'm not asking you to decide anything today — when's a better time to go over these numbers with you?"`);
-  } else {
-    rwQuestions.push(`Close: "Would this afternoon or tomorrow morning work to go over what we've got for you?"`);
+    rwQuestions.push(`"What would you use extra funds for if you had them?" — What do you want to happen? (Q2)`);
   }
 
-  // What a successful call looks like for this specific scenario
-  const successNote = state.annoyanceLevel === 'hostile' || state.annoyanceLevel === 'fatigued'
-    ? `Success on this call = customer ends warmly even without an app. Relationship Win counts.`
-    : outcome === 'relationship'
-    ? `Strong call = app taken or solid follow-up. Cooperative customer — push for the application.`
-    : `Strong call = application taken OR firm callback scheduled with a specific time.`;
+  const topObjn = b.likely_objections && b.likely_objections[0];
+  if (topObjn) {
+    rwQuestions.push(`Likely objection: "${topObjn}" — acknowledge first, then reframe`);
+  }
+
+  rwQuestions.push(`"If we could lower your monthly payments, would you want to see those numbers?" — Q5: If we could help you...`);
+
+  const closeQ = (state.difficulty==='resistant'||state.difficulty==='irrational')
+    ? `"I'm not asking you to decide anything today — when would be a better time to go over this?"`
+    : `"Would this afternoon or tomorrow morning work to go over what we've got for you?"`;
+  rwQuestions.push(`Close: ${closeQ}`);
+
+  // ── Win Condition ──
+  const isHighFatigue = state.annoyanceLevel==='hostile'||state.annoyanceLevel==='fatigued';
+  const winNote = isHighFatigue
+    ? `High fatigue call — customer ending warmly = Relationship Win. That's a success here.`
+    : state.difficulty==='cooperative'||state.difficulty==='hesitant'
+    ? `Cooperative customer — push for the application. Follow-up with specific time is minimum.`
+    : `Strong call = app taken OR firm callback with a specific time and day.`;
+
+  // ── Backstory hint ──
+  const bureauKey = Object.keys(BUREAU_TEMPLATES).find(k => BUREAU_TEMPLATES[k].label === b.label);
+  const hasBackstory = bureauKey && CUSTOMER_BACKSTORIES && CUSTOMER_BACKSTORIES[bureauKey];
 
   document.getElementById('coaching-cues-display').innerHTML = `
     <div style="display:flex;flex-direction:column;gap:10px">
 
+      ${state.customerName ? `<div style="padding:6px 10px;background:var(--panel);border-radius:8px;font-size:11px;color:var(--text2)">
+        <strong style="color:var(--text)">${state.customerName}</strong> · ${state.customerOccupation||b.occupation} · FICO ~${b.fico} · $${b.income.toLocaleString()}/mo
+        ${state.customerFlavor?`<span style="color:var(--text3)"> · ${state.customerFlavor.id}</span>`:''}
+        ${hasBackstory?`<span style="color:var(--accent)"> · 📖 Backstory loaded</span>`:''}
+      </div>` : ''}
+
       <div>
         <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--accent);margin-bottom:6px">📋 Bureau Prep — What to Reference</div>
-        ${prepHints.map(h => `<div style="padding:5px 8px;background:var(--panel);border-left:2px solid var(--accent);border-radius:0 4px 4px 0;font-size:11px;color:var(--text2);margin-bottom:4px;line-height:1.5">${h}</div>`).join('')}
+        ${prepHints.map(h=>`<div style="padding:5px 8px;background:var(--panel);border-left:2px solid var(--accent);border-radius:0 4px 4px 0;font-size:11px;color:var(--text2);margin-bottom:4px;line-height:1.5">${h}</div>`).join('')}
       </div>
 
       <div>
         <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:#10b981;margin-bottom:6px">💬 Republic Way Questions</div>
-        ${rwQuestions.map(q => `<div style="padding:5px 8px;background:var(--panel);border-left:2px solid #10b981;border-radius:0 4px 4px 0;font-size:11px;color:var(--text2);margin-bottom:4px;line-height:1.5;font-style:italic">${q}</div>`).join('')}
+        ${rwQuestions.map(q=>`<div style="padding:5px 8px;background:var(--panel);border-left:2px solid #10b981;border-radius:0 4px 4px 0;font-size:11px;color:var(--text2);margin-bottom:4px;line-height:1.5;font-style:italic">${q}</div>`).join('')}
       </div>
 
       <div style="padding:8px 10px;background:#f59e0b10;border:1px solid #f59e0b30;border-radius:6px;font-size:11px;color:#f59e0b;line-height:1.5">
-        <strong>Win condition:</strong> ${successNote}
+        <strong>Win condition:</strong> ${winNote}
       </div>
 
     </div>`;
 }
+
 
 function toggleCues() {
   const el = document.getElementById('coaching-cues-section');
@@ -1011,7 +1270,8 @@ async function endCall(autoOutcome = null) {
 
 async function getCustomerResponse(associateMsg) {
   const b=state.bureau;
-  const recentConv=state.conversation.slice(-8).map(m=>`${m.role==='customer'?state.customerName:state.associateName}: ${m.content}`).join('\n');
+  // Cap at 6 turns to control prompt size
+  const recentConv=state.conversation.slice(-6).map(m=>`${m.role==='customer'?state.customerName:state.associateName}: ${m.content}`).join('\n');
   const bureauSum=b.accounts.map(a=>`${a.creditor}[${a.code}]:$${a.balance.toLocaleString()},${a.status}`).join(';');
   const veh=b.vehicle;
   const vCtx=veh?`${veh.year} ${veh.make} ${veh.model}, equity ~$${(veh.est_value-veh.lien_balance).toLocaleString()}`:'No vehicle';
@@ -1022,8 +1282,18 @@ async function getCustomerResponse(associateMsg) {
   const inqN=inq?`Inquiry: ${inq.key_point}`:'FC codes differ from FA/FM. One FC inquiry = minimal impact. Credit correct explanation.';
   const dmap={cooperative:'Open, mild hesitation. Specific benefit tied to your situation wins you over.',hesitant:'Skeptical. Raise 1-2 objections. Need empathy and reason.',resistant:'Strong objections. Push back. Only soften if associate references YOUR specific accounts AND shows empathy AND asks for business.',irrational:'Upset. End [CALL_END:declined] after 3-4 exchanges.'};
   const flav=state.customerFlavor;
-  const prompt=`You are ${state.customerName}, ${state.customerOccupation||b.occupation}, ~$${b.income.toLocaleString()}/mo, FICO ~${b.fico}, Tier ${b.tier}.
-${flav?`Personality: ${flav.desc}`:''}${state.customerSituation?`\nSituation: ${state.customerSituation}`:''}
+  const prompt=`You are ${state.customerName}, ${state.customerOccupation||b.occupation}.
+OCCUPATION CONTEXT: Your job shapes how you speak and how much time you feel you have. A bus driver is on a schedule and speaks in short practical sentences. A warehouse supervisor is efficient and direct. A nurse is empathetic but guarded about finances. A construction worker is proud and independent. A school teacher is patient but not a pushover. Let your occupation naturally color your tone and patience level.
+Demographically, ~$${b.income.toLocaleString()}/mo, FICO ~${b.fico}, Tier ${b.tier}.
+${flav?`Personality: ${flav.desc}`:''}
+${(()=>{
+  const key=Object.keys(BUREAU_TEMPLATES).find(k=>BUREAU_TEMPLATES[k].label===b.label)||'';
+  const full=getBackstory(key);
+  if(!full)return '';
+  // Send only the KEY BEHAVIORAL SIGNALS section to save tokens
+  const kbs=full.indexOf('KEY BEHAVIORAL SIGNALS');
+  return kbs>=0?full.slice(kbs,kbs+600):full.slice(0,400);
+})()}${state.customerSituation?`\nSituation: ${state.customerSituation}`:''}
 Accounts: ${bureauSum}. ${vCtx}. Monthly debt $${b.total_monthly_debt}/mo. ${b.residual_income}.
 Call: ${state.callType==='pcr'?'renewing your Republic Finance loan':'converting a pre-approved live check'}.
 ${b.customer_credit_awareness}
@@ -1059,8 +1329,14 @@ Rules: 1-3 sentences. Natural speech. Vary language. Append when call ends: [CAL
 [CALL_END:relationship] = customer declines application but ends the call warmly — they feel good about the interaction, associate thanked them for their business sincerely, customer says something like "I appreciate you calling" or "maybe next time" in a genuinely warm tone. This is a POSITIVE outcome.
 Conversation:\n${recentConv}
 ${state.customerName}: `;
-  const resp=await fetch('/api/chat',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({model:'claude-sonnet-4-20250514',max_tokens:200,messages:[{role:'user',content:prompt}]})});
-  if(!resp.ok)throw new Error(`API ${resp.status}`);
+  const reqBody=JSON.stringify({model:'claude-sonnet-4-20250514',max_tokens:200,messages:[{role:'user',content:prompt}]});
+  console.log('Customer prompt size:',reqBody.length,'bytes');
+  const resp=await fetch('/api/chat',{method:'POST',headers:{'Content-Type':'application/json'},body:reqBody});
+  if(!resp.ok){
+    const errDetail=await resp.text().catch(()=>'no detail');
+    console.error('Customer response API error:',resp.status,errDetail);
+    throw new Error(`API ${resp.status}: ${errDetail.slice(0,200)}`);
+  }
   const data=await resp.json();
   const raw=data.content?.[0]?.text||"Yeah... go ahead.";
   let mood=state.customerMood;
@@ -1089,7 +1365,8 @@ async function generateDebrief(outcome) {
 
   const archConfig = ARCHETYPE_CONFIGS[state.archetype || 'random'];
   const elapsed = Math.floor((Date.now() - state.callStart) / 1000);
-  const convText = state.conversation
+  // Cap conversation at 20 turns to keep prompt under size limit
+  const convText = state.conversation.slice(-20)
     .map(m => `${m.role === 'customer' ? state.customerName : state.associateName}: ${m.content}`)
     .join('\n');
 
@@ -1127,14 +1404,16 @@ Output ONLY this JSON:
 {"rapport_score":14,"product_score":12,"objection_score":18,"benefits_score":10,"closing_score":12,"overall_score":66,"outcome_label":"Developing","summary":"Two direct sentences referencing actual moments.","rapport_note":"Specific observation on rapport","product_note":"Specific observation on product knowledge or bureau prep","objection_note":"Specific observation on objection handling","benefits_note":"Specific observation on benefits communication","closing_note":"Specific observation on closing attempt","what_worked":["specific quote or moment","another specific strength"],"opportunities":["specific missed moment with Republic Way suggestion","another opportunity"],"archetype_coaching":"2-3 sentences on their archetype and what this call revealed. Direct and actionable.","next_practice":"One concrete Republic Way behavior to focus on next call."}`
 
   try {
+    const debriefBody = JSON.stringify({
+      model: 'claude-sonnet-4-20250514',
+      max_tokens: 1500,
+      messages: [{ role: 'user', content: debriefPrompt }],
+    });
+    console.log('Debrief prompt size:', debriefBody.length, 'bytes');
     const resp = await fetch('/api/chat', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        model: 'claude-sonnet-4-20250514',
-        max_tokens: 1500,
-        messages: [{ role: 'user', content: debriefPrompt }],
-      }),
+      body: debriefBody,
     });
 
     if (!resp.ok) {
@@ -1161,6 +1440,7 @@ Output ONLY this JSON:
       debrief.overall_score = dimSum;
     }
 
+    window._lastDebrief = debrief;
     renderDebrief(debrief, outcome);
 
   } catch(e) {
@@ -1169,7 +1449,8 @@ Output ONLY this JSON:
     document.getElementById('debrief-content').innerHTML = `
       <div style="background:#ef444415;border:1px solid #ef444430;border-radius:12px;padding:20px;margin-bottom:16px">
         <div style="font-weight:700;color:#ef4444;margin-bottom:8px">⚠ Scoring Error</div>
-        <div style="font-size:12px;color:var(--text2);margin-bottom:12px">${e.message}</div>
+        <div style="font-size:12px;color:var(--text2);margin-bottom:12px;font-family:monospace">${e.message}</div>
+        <div style="font-size:10px;color:var(--text3);margin-bottom:8px">Check browser console (F12) for full details.</div>
         <div style="font-size:11px;color:var(--text3)">The call was recorded. Try clicking Score This Call again, or check that the API connection is working.</div>
       </div>
       <button class="btn-secondary" onclick="generateDebrief('${outcome}')" style="width:100%;margin-bottom:8px">↺ Retry Scoring</button>
@@ -1253,7 +1534,26 @@ function renderDebrief(d, outcome) {
       <div style="font-size:12px;color:var(--text2);line-height:1.6">${d.next_practice}</div>
     </div>` : ''}
 
-    <div style="display:flex;gap:8px;margin-top:20px">
+    <!-- Share Results -->
+    <div style="margin:16px 0 10px">
+      <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--text3);margin-bottom:8px">Share Results</div>
+      <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:6px">
+        <button onclick="shareByEmail(window._lastDebrief,'${outcome}')"
+          style="flex:1;min-width:130px;padding:9px 12px;background:#3b82f615;border:1px solid #3b82f640;border-radius:8px;color:#60a5fa;font-size:11px;font-weight:700;cursor:pointer">
+          📧 Email to Manager
+        </button>
+        <button id="copy-results-btn" onclick="copyResultsToClipboard(window._lastDebrief,'${outcome}')"
+          style="flex:1;min-width:90px;padding:9px 12px;background:var(--panel2);border:1px solid var(--border);border-radius:8px;color:var(--text2);font-size:11px;font-weight:700;cursor:pointer">
+          📋 Copy
+        </button>
+        <button onclick="printDebrief()"
+          style="padding:9px 12px;background:var(--panel2);border:1px solid var(--border);border-radius:8px;color:var(--text2);font-size:11px;font-weight:700;cursor:pointer">
+          🖨️
+        </button>
+      </div>
+      ${!state.managerEmail ? '<div style="font-size:10px;color:var(--text3)">💡 Add manager email on the setup screen to pre-fill the recipient</div>' : ''}
+    </div>
+    <div style="display:flex;gap:8px">
       <button class="btn-primary" onclick="resetSim()" style="flex:1">🔄 New Scenario</button>
       <button class="btn-secondary" style="flex:1" onclick="reviewConversation()">💬 Review Conversation</button>
     </div>`;
@@ -1261,17 +1561,20 @@ function renderDebrief(d, outcome) {
 
 function renderFallbackDebrief(outcome) {
   const signals = [
-    state.askedQualifyingQuestion ? '✓ Asked qualifying questions' : '✗ No qualifying questions detected',
-    state.mentionedBenefits       ? '✓ Communicated product benefits' : '✗ Benefits not clearly communicated',
-    state.addressedObjection      ? '✓ Addressed customer objection' : '✗ Objection not directly addressed',
-    state.askedForBusiness        ? '✓ Asked for the business' : '✗ Did not ask for the business / application',
+    state.askedQualifyingQuestion ? '✓ Asked qualifying questions'     : '✗ No qualifying questions detected',
+    state.mentionedBenefits       ? '✓ Communicated product benefits'  : '✗ Benefits not clearly communicated',
+    state.addressedObjection      ? '✓ Addressed customer objection'   : '✗ Objection not directly addressed',
+    state.askedForBusiness        ? '✓ Asked for the business'         : '✗ Did not ask for the business / application',
   ];
-  document.getElementById('debrief-content').innerHTML = `
-    <div style="font-family:'Syne',sans-serif;font-weight:700;font-size:18px;margin-bottom:16px">Call Complete</div>
-    <div style="background:var(--panel2);border-radius:10px;padding:14px;margin-bottom:14px">
-      ${signals.map(s => `<div style="padding:6px 0;border-top:1px solid var(--border);font-size:12px;color:var(--text2)">${s}</div>`).join('')}
-    </div>
-    <button class="btn-primary" onclick="resetSim()">🔄 New Scenario</button>`;
+  const outcomeIcon = outcome==='converted'?'✅':outcome==='followup'?'📅':outcome==='relationship'?'🤝':'📵';
+  const outcomeLabel = outcome==='converted'?'Converted':outcome==='followup'?'Follow-up Set':outcome==='relationship'?'Relationship Win':'Declined';
+  document.getElementById('debrief-content').innerHTML =
+    '<div style="font-size:18px;font-weight:700;margin-bottom:16px">Call Complete ' + outcomeIcon + ' ' + outcomeLabel + '</div>' +
+    '<div style="background:var(--panel2);border-radius:10px;padding:14px;margin-bottom:14px">' +
+    signals.map(s => '<div style="padding:6px 0;border-top:1px solid var(--border);font-size:12px;color:var(--text2)">' + s + '</div>').join('') +
+    '</div>' +
+    '<div style="font-size:11px;color:var(--text3);margin-bottom:12px">Full scoring requires a completed call with API access.</div>' +
+    '<button class="btn-primary" onclick="resetSim()">🔄 New Scenario</button>';
 }
 
 function reviewConversation() {
@@ -1482,7 +1785,7 @@ function updateVoiceBadge() {
           n.includes('samantha') || n.includes('daniel')) return '★★';
       return '★';
     })();
-    badge.innerHTML = `🔊 <span style="font-weight:600">${selectedVoice.name}</span> ${quality}`;
+    badge.innerHTML = '🔊 <span style="font-weight:600">' + selectedVoice.name + '</span> ' + quality;
     badge.style.display = 'flex';
   } else {
     badge.style.display = 'none';
