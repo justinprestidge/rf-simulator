@@ -226,11 +226,15 @@ label{font-size:11px;color:var(--text2);display:block;margin-bottom:3px;}
           <option value="consolidation_candidate">Consolidation Candidate · Tier 2</option>
           <option value="stable_pcr">Stable PCR — Loyal Customer · Tier 1</option>
           <option value="lcc_prospect">Live Check Recipient · Tier 3</option>
-          <option value="house_buyer">Home Buyer — Inquiry Sensitive · Tier 2</option>
+          <option value="house_buyer">Home Buyer — Mortgage Pending · Tier 2</option>
           <option value="resistant_spouse">Resistant — Spouse Involved · Tier 2</option>
           <option value="former_customer">Former Customer — Paid Off · Tier 2</option>
           <option value="scam_skeptic">LCC Scam Skeptic · Tier 3</option>
           <option value="cosigner_candidate">Thin File — Co-Signer Needed · Tier 4</option>
+              <optgroup label="─── Named Profiles ───"></optgroup>
+              <option value="profile_a">Profile A — Single Mom, Medical · Tier 3</option>
+              <option value="profile_b">Profile B — HVAC Owner, Skeptic · Tier 3</option>
+              <option value="profile_c">Profile C — Manager, Lifestyle Inflation · Tier 2</option>
         </select>
       </div>
       <div class="panel-section" style="flex:1;display:flex;flex-direction:column;justify-content:flex-end">
@@ -358,6 +362,160 @@ const LENDER_POOLS = {
   FM: ['Rocket Mortgage','Mr. Cooper','PHH Mortgage','LoanDepot','Caliber Home Loans'],
   ST: ["Conn's HomePlus",'Rent-A-Center',"Aaron's",'FlexShopper','Genesis Financial'],
 };
+// ============================================================
+// PROFILE POOLS — occupation / life-event / creditor banks
+// Used by generateProfileBureau() to build a fresh customer each run
+// ============================================================
+const PROFILE_POOLS = {
+  profile_a: {
+    occupations: [
+      {title:'Medical Office Coordinator',    income:[2800,3800]},
+      {title:'Dental Receptionist',           income:[2600,3400]},
+      {title:'Pediatric Clinic Front Desk',   income:[2700,3600]},
+      {title:'Hospital Admin Assistant',      income:[3000,4000]},
+      {title:'Physical Therapy Coordinator',  income:[2900,3700]},
+      {title:'Home Health Scheduler',         income:[2600,3400]},
+      {title:'Optometry Office Manager',      income:[2800,3600]},
+      {title:'Veterinary Receptionist',       income:[2500,3300]},
+    ],
+    fico: [595, 660],
+    cards: ['Capital One','Discover','Synchrony/Care Credit','Synchrony/Amazon',
+            'Credit One Bank','PayPal Credit','Comenity/HSN','Merrick Bank',
+            'First Premier Bank','Indigo Mastercard'],
+    num_cards: [2, 3],
+    fc_balance: [800, 2200],
+    life_events: [
+      "a transmission repair on her car that cost over $2,000",
+      "orthodontic work for her youngest that her dental plan barely covered",
+      "a vet emergency for the family dog that came out of nowhere",
+      "college application fees and first semester deposits for her oldest",
+      "a water heater replacement that couldn't wait",
+      "new tires and brakes the car needed before inspection",
+      "school activity fees and a class trip that added up fast",
+      "a week in the hospital last year and the bills are still coming",
+      "helping her daughter get into her first apartment",
+    ],
+    vehicles: [
+      {make:'Honda',  model:'Pilot',        years:[2015,2022], lenders:['Ally Financial','Honda Financial']},
+      {make:'Toyota', model:'Highlander',   years:[2015,2022], lenders:['Toyota Financial','Chase Auto']},
+      {make:'Toyota', model:'RAV4',         years:[2016,2022], lenders:['Toyota Financial','Ally Financial']},
+      {make:'Nissan', model:'Rogue',        years:[2016,2022], lenders:['Nissan Motor Acceptance','Ally Financial']},
+      {make:'Ford',   model:'Explorer',     years:[2015,2021], lenders:['Ford Motor Credit','Ally Financial']},
+      {make:'Chevy',  model:'Equinox',      years:[2016,2022], lenders:['GM Financial','Ally Financial']},
+      {make:'Kia',    model:'Sorento',      years:[2017,2022], lenders:['Kia Finance','Ally Financial']},
+    ],
+    free_clear_pct: 0.35,   // 35% chance vehicle is paid off
+    gender_bias: 'F',
+  },
+  profile_b: {
+    occupations: [
+      {title:'Self-Employed HVAC Contractor', income:[3800,6500], variable:true},
+      {title:'Independent Electrician',       income:[4200,6800], variable:true},
+      {title:'Licensed Plumber',              income:[4000,6200], variable:true},
+      {title:'General Contractor',            income:[3500,7000], variable:true},
+      {title:'Auto Mechanic (Own Shop)',       income:[3800,5800], variable:true},
+      {title:'Welding Contractor',            income:[3600,5500], variable:true},
+      {title:'Roofing Contractor',            income:[4000,6500], variable:true},
+      {title:'Landscaping Business Owner',    income:[3400,5500], variable:true},
+    ],
+    fico: [565, 640],
+    business_cards: ['Chase Business Unlimited','Capital One Spark','Bank of America Business',
+                     'American Express Business Blue','US Bank Business'],
+    equipment: ['Synchrony/Home','Snap Finance','EasyPay Finance','GreenSky','Ygrene Finance'],
+    num_cards: [1, 2],
+    life_events: [
+      "equipment costs that have spiked significantly and squeezed his margins",
+      "a slow quarter that was worse than expected and drained his cushion",
+      "a health scare that left him with some unexpected medical bills",
+      "parts and materials costs that went up after supply chain problems",
+      "a major truck repair that cost several thousand dollars",
+      "insurance premiums that jumped at renewal",
+      "a key employee leaving and having to cover his work for a few months",
+      "two back-to-back jobs that clients delayed, leaving a cash flow gap",
+    ],
+    vehicles: [
+      {make:'Ford',   model:'F-250',      years:[2013,2020], work_truck:true},
+      {make:'Chevy',  model:'Silverado 2500', years:[2013,2020], work_truck:true},
+      {make:'Ram',    model:'2500',       years:[2014,2020], work_truck:true},
+      {make:'Ford',   model:'F-150',      years:[2015,2021], work_truck:true},
+      {make:'GMC',    model:'Sierra 1500',years:[2015,2021], work_truck:true},
+      {make:'Toyota', model:'Tacoma',     years:[2015,2021], work_truck:true},
+    ],
+    free_clear_pct: 0.70,  // 70% own the truck outright — that's the whole point
+    gender_bias: 'M',
+  },
+  profile_c: {
+    occupations: [
+      {title:'Regional Operations Manager', income:[5200,7800]},
+      {title:'District Sales Manager',      income:[5000,8500]},
+      {title:'Marketing Director',          income:[5500,8500]},
+      {title:'HR Director',                 income:[5000,7200]},
+      {title:'Senior Project Manager',      income:[5200,7500]},
+      {title:'Brand Manager',               income:[5000,7000]},
+      {title:'Finance Manager',             income:[5200,7200]},
+      {title:'Senior Account Executive',    income:[4800,8000]},
+    ],
+    fico: [645, 700],
+    premium_cards: ['Chase Sapphire','Citi Double Cash','American Express Blue Cash',
+                    'Bank of America Travel','Capital One Venture','Barclays Arrival',
+                    'Wells Fargo Active Cash','Citi Custom Cash','Chase Freedom Unlimited'],
+    num_cards: [3, 5],
+    life_events: [
+      "a vacation she put on cards and is still chipping away at",
+      "home renovation costs that ended up being more than the original estimate",
+      "a balance transfer that helped in the moment but the pattern continued",
+      "furnishing a new place after relocating for the promotion",
+      "a stretch of months where expenses just kept running higher than income",
+      "helping a family member through a difficult time financially",
+      "a car she upgraded to when she got the last promotion",
+    ],
+    vehicles: [
+      {make:'Acura',    model:'TLX',      years:[2020,2024], lenders:['Honda Financial','Chase Auto']},
+      {make:'BMW',      model:'3 Series', years:[2019,2023], lenders:['BMW Financial','Ally Financial']},
+      {make:'Lexus',    model:'IS 300',   years:[2019,2023], lenders:['Toyota Financial','Ally Financial']},
+      {make:'Mercedes', model:'C-Class',  years:[2019,2023], lenders:['Mercedes-Benz Financial','Ally Financial']},
+      {make:'Audi',     model:'A4',       years:[2019,2023], lenders:['Audi Financial','Ally Financial']},
+      {make:'Honda',    model:'Accord',   years:[2021,2024], lenders:['Honda Financial','Chase Auto']},
+      {make:'Toyota',   model:'Camry',    years:[2021,2024], lenders:['Toyota Financial','Ally Financial']},
+    ],
+    free_clear_pct: 0.05,  // Almost always financed
+    gender_bias: 'F',
+  },
+};
+
+// Life event pools for existing archetypes (adds specificity to backstories)
+const LIFE_EVENT_POOLS = {
+  consolidation_candidate: [
+    "AC unit broke down in the middle of summer — put it on a card",
+    "kids needed braces and the dental plan barely covered anything",
+    "transmission on the car went out at the worst time",
+    "had to move unexpectedly and first/last plus deposits wiped out the savings",
+    "three kids in travel sports and the equipment and tournament costs never stop",
+    "a car accident with out-of-pocket expenses the insurance didn't cover",
+    "an ER visit last year and the bills are still trickling in",
+    "roof needed repairs after a storm and insurance only covered part of it",
+  ],
+  stable_pcr: [
+    "recently had some unexpected dental work",
+    "helped one of the kids get into their first place",
+    "replaced a major appliance that finally gave out",
+    "took a vacation they'd been putting off for years",
+  ],
+  lcc_prospect: [
+    "used the check to pay off a credit card balance",
+    "needed cash cushion for an upcoming expense",
+    "used it to cover a car repair",
+    "not entirely sure why they cashed it — it was there",
+  ],
+  house_buyer: [
+    "has been saving for years and finally hit the down payment number",
+    "pre-approved at 6.8% and hoping to lock before rates move again",
+    "this would be the first home anyone in their family has ever owned",
+    "moving from renting after property values kept climbing",
+  ],
+};
+
+
 const VEHICLE_POOLS = {
   male:   [['Ford','F-150'],['Chevy','Silverado'],['Ram','1500'],['GMC','Sierra'],
            ['Toyota','Tacoma'],['Ford','Ranger'],['Chevy','Colorado'],['Nissan','Frontier'],
@@ -383,9 +541,186 @@ function rVar(base, pct) {
 }
 function pickLender(code) { return rFrom(LENDER_POOLS[code]||LENDER_POOLS.FC); }
 
+
+// ============================================================
+// GENERATE PROFILE BUREAU
+// Called for profile_a / profile_b / profile_c — builds a
+// completely fresh bureau from pools on every simulation run
+// ============================================================
+function generateProfileBureau(profileKey, customerName) {
+  const pool     = PROFILE_POOLS[profileKey];
+  if (!pool) return null;
+
+  const firstName = (customerName||'').split(' ')[0].toLowerCase();
+  const isFemale  = FEMALE_FIRST_NAMES.includes(firstName) ||
+                    pool.gender_bias === 'F' ||
+                    (pool.gender_bias !== 'M' && Math.random() < 0.5);
+
+  // ── Pick occupation and income ──
+  const occ      = pool.occupations[rInt(0, pool.occupations.length-1)];
+  const income   = rInt(occ.income[0], occ.income[1]);
+  const incLabel = occ.variable
+    ? `~$${Math.round(income/100)*100}/mo (varies by season)`
+    : `$${Math.round(income/100)*100}/mo`;
+
+  // ── Generate FICO ──
+  const fico = rInt(pool.fico[0], pool.fico[1]);
+
+  // ── Pick a life event ──
+  const lifeEvent = pool.life_events[rInt(0, pool.life_events.length-1)];
+
+  // ── Generate accounts ──
+  const accounts = [];
+
+  if (profileKey === 'profile_a') {
+    // 2-3 credit cards from the pool
+    const numCards = rInt(pool.num_cards[0], pool.num_cards[1]);
+    const cardPool = [...pool.cards].sort(()=>Math.random()-0.5).slice(0, numCards);
+    cardPool.forEach(creditor => {
+      const bal = rInt(400, Math.round(income * 0.6));
+      const pmt = Math.max(25, Math.round(bal * (0.025 + Math.random()*0.015)));
+      accounts.push({creditor, type:'Credit Card', balance:bal,
+        payment:pmt, status:Math.random()<0.12?'×1 30-Day':'Current', code:'BC'});
+    });
+    // Republic Finance installment
+    const rfBal = rInt(pool.fc_balance[0], pool.fc_balance[1]);
+    accounts.push({creditor:'Republic Finance', type:'Installment',
+      balance:rfBal, payment:Math.round(rfBal/14), status:'Current', code:'FC'});
+  }
+
+  if (profileKey === 'profile_b') {
+    // Republic Finance first
+    const rfBal = rInt(1500, 3200);
+    accounts.push({creditor:'Republic Finance', type:'Installment',
+      balance:rfBal, payment:Math.round(rfBal/15), status:'Current', code:'FC'});
+    // 1-2 business/trade cards
+    const numCards = rInt(pool.num_cards[0], pool.num_cards[1]);
+    const bizCards = [...pool.business_cards].sort(()=>Math.random()-0.5).slice(0, numCards);
+    bizCards.forEach(creditor => {
+      const bal = rInt(800, Math.round(income * 0.65));
+      const pmt = Math.max(35, Math.round(bal * 0.028));
+      accounts.push({creditor, type:'Business Card', balance:bal,
+        payment:pmt, status:'Current', code:'BC'});
+    });
+    // Equipment or medical
+    if (Math.random() < 0.6) {
+      const equip = pool.equipment[rInt(0, pool.equipment.length-1)];
+      const eBal  = rInt(600, 1800);
+      accounts.push({creditor:equip, type:'Equipment/Home', balance:eBal,
+        payment:Math.max(30, Math.round(eBal*0.04)), status:'Current', code:'BC'});
+    }
+    if (Math.random() < 0.5) {
+      accounts.push({creditor:'CareCredit', type:'Medical Credit',
+        balance:rInt(400,1800), payment:rInt(35,85), status:'Current', code:'BC'});
+    }
+  }
+
+  if (profileKey === 'profile_c') {
+    // 3-5 premium cards, at least one with a late
+    const numCards = rInt(pool.num_cards[0], pool.num_cards[1]);
+    const cardPool = [...pool.premium_cards].sort(()=>Math.random()-0.5).slice(0, numCards);
+    let hadLate = false;
+    cardPool.forEach(creditor => {
+      const bal = rInt(1200, Math.round(income * 0.75));
+      const pmt = Math.max(40, Math.round(bal * 0.03));
+      const isLate = !hadLate && Math.random() < 0.35;
+      if (isLate) hadLate = true;
+      accounts.push({creditor, type:'Credit Card', balance:bal,
+        payment:pmt, status:isLate?'×1 30-Day':'Current', code:'BC'});
+    });
+    // Republic Finance
+    const rfBal = rInt(1200, 2800);
+    accounts.push({creditor:'Republic Finance', type:'Installment',
+      balance:rfBal, payment:Math.round(rfBal/14), status:'Current', code:'FC'});
+  }
+
+  // ── Generate vehicle ──
+  const vPool  = pool.vehicles[rInt(0, pool.vehicles.length-1)];
+  const vYear  = rInt(vPool.years[0], vPool.years[1]);
+  const owned  = Math.random() < pool.free_clear_pct;
+  const estVal = rInt(8000, 32000);
+  const lienBal= owned ? 0 : rInt(Math.round(estVal*0.3), Math.round(estVal*0.75));
+  const lienHolder = owned ? 'Free & Clear'
+    : (vPool.lenders ? vPool.lenders[rInt(0,vPool.lenders.length-1)] : 'Ally Financial');
+
+  const vehicle = {year:vYear, make:vPool.make, model:vPool.model,
+    est_value:estVal, lien_holder:lienHolder, lien_balance:lienBal};
+
+  // ── Compute totals ──
+  const totalDebt  = accounts.reduce((s,a)=>s+a.payment, 0);
+  const dti        = totalDebt / income;
+  const residual   = dti < 0.20 ? 'Comfortable — good residual income'
+                   : dti < 0.32 ? 'Moderate — manageable but watched'
+                   : dti < 0.45 ? 'Tight — limited buffer for surprises'
+                   : 'Strained — debt service is a real burden';
+
+  // ── Build prep hooks from actual generated data ──
+  const totalBal = accounts.reduce((s,a)=>s+a.balance, 0);
+  const totalPmt = accounts.reduce((s,a)=>s+a.payment, 0);
+  const prepHooks = [
+    `${accounts.length} accounts · $${totalBal.toLocaleString()} total · $${totalPmt}/mo in payments`,
+    `Life event context: ${lifeEvent}`,
+    `Vehicle: ${vYear} ${vPool.make} ${vPool.model} — ${owned ? 'Owned free & clear' : `Financed with ${lienHolder}, $${lienBal.toLocaleString()} balance`}`,
+  ];
+  if (profileKey==='profile_b' && owned) {
+    prepHooks.push('⚠ Do NOT mention vehicle as collateral — emotionally off-limits unless he brings it up');
+  }
+  if (profileKey==='profile_c') {
+    const lateAcct = accounts.find(a=>a.status.includes('30-Day'));
+    if (lateAcct) prepHooks.push(`Early warning: ${lateAcct.creditor} showing a 30-day late`);
+    prepHooks.push(`Just received a promotion/raise — frame consolidation as the smart next move`);
+  }
+
+  return {
+    label: PROFILE_POOLS[profileKey].occupations[0].title, // will be overridden
+    tier: profileKey==='profile_c' ? 2 : 3,
+    twentile: rInt(7, 14),
+    fico, income,
+    occupation: occ.title,
+    call_type_fit: ['pcr','consolidation'],
+    accounts,
+    total_monthly_debt: totalDebt,
+    residual_income: residual,
+    vehicle,
+    prep_hooks: prepHooks,
+    life_event: lifeEvent,    // stored for AI prompt injection
+    likely_objections: BUREAU_TEMPLATES[profileKey]?.likely_objections || [],
+    notes: BUREAU_TEMPLATES[profileKey]?.notes || '',
+    _generated: true,
+  };
+}
+
 function applyBureauVariance(template, customerName) {
   const firstName = (customerName||'').split(' ')[0].toLowerCase();
   const isFemale  = FEMALE_FIRST_NAMES.includes(firstName);
+
+  // ── Occupation randomization from pool (adds variety across sessions) ──
+  const OCC_POOLS = {
+    consolidation_candidate: ['Bus Driver','Warehouse Supervisor','Truck Driver',
+      'Mail Carrier','Correctional Officer','Factory Line Worker','Maintenance Tech',
+      'Grocery Department Manager','Delivery Driver','Assembly Supervisor',
+      'School Custodian','City Utility Worker','Landscaping Crew Lead'],
+    stable_pcr: ['County Clerk','School Teacher','Office Manager','Bank Teller Supervisor',
+      'Insurance Agent','Postal Supervisor','Library Coordinator','Government Accountant',
+      'City Inspector','DMV Supervisor','HR Coordinator'],
+    lcc_prospect: ['Customer Service Supervisor','HR Coordinator','IT Support Specialist',
+      'Dental Hygienist','Pharmacy Technician','Insurance Claims Processor',
+      'Property Manager','Billing Specialist'],
+    house_buyer: ['Teacher','Police Officer','Firefighter','Nurse','Government Worker',
+      'Real Estate Agent','Mortgage Processor','Bank Branch Manager'],
+    resistant_spouse: ['School Custodian','Retail Store Manager','Food Service Manager',
+      'Healthcare Worker','Administrative Assistant','Accounting Clerk',
+      'Shipping Coordinator','Security Supervisor'],
+    former_customer: ['IT Project Manager','Logistics Coordinator','Healthcare Administrator',
+      'Accounting Supervisor','Sales Representative','Operations Analyst',
+      'Software Support Specialist','Digital Marketing Coordinator'],
+    scam_skeptic: ['Retired Teacher','Retired Postal Worker','Senior Accountant',
+      'Restaurant Owner','Small Business Manager','Freelance Consultant'],
+    cosigner_candidate: ['Part-Time Retail Worker','Community College Student',
+      'Entry-Level Admin','Fast Food Shift Supervisor','Warehouse Associate'],
+  };
+  const occPool = OCC_POOLS[template._key || ''];
+  const occupation = occPool ? occPool[rInt(0, occPool.length-1)] : template.occupation;
 
   // Vary FICO ±25, income ±18%
   const newFico   = Math.max(520, Math.min(720, template.fico + rInt(-25,25)));
@@ -426,14 +761,34 @@ function applyBureauVariance(template, customerName) {
     };
   }
 
+  // For LCC profiles: add realistic LC clearing sheet data
+  let lcData = null;
+  if (template.call_type_fit && template.call_type_fit.includes('lcc') &&
+      template.call_type_fit.length === 1) {
+    const checkAmounts = [800,1000,1200,1500,1800,2000,2500,3000];
+    const checkAmt = rFrom(checkAmounts);
+    const openCFTrades = rInt(1,4);
+    const bankCardBal = Math.round(rVar(2400, 40) / 100) * 100;
+    const hasMortgage = Math.random() > 0.7;
+    lcData = {
+      check_amount: checkAmt,
+      open_consumer_finance_trades: openCFTrades,
+      bank_card_balance: bankCardBal,
+      has_mortgage: hasMortgage,
+      months_at_residence: rInt(12, 60),
+    };
+  }
+
   return {
     ...template,
+    occupation: occupation,
     fico: newFico,
     income: newIncome,
     accounts: newAccounts,
     total_monthly_debt: totalDebt,
     residual_income: residualLabel,
     vehicle: newVehicle,
+    lc_data: lcData,
   };
 }
 
@@ -527,6 +882,135 @@ KEY BEHAVIORAL SIGNALS:
 - Will mention the original reason they cashed the check if asked what they used it for
 - Open to a larger loan if associate discovers an unmet need
 - Gets impatient if the call feels complicated or bureaucratic
+`,
+
+
+  house_buyer: `
+BACKSTORY & PERSONALITY:
+You are in the process of buying a home — possibly your first, possibly a bigger one as your family has grown. You have been pre-approved by a mortgage lender and your loan officer has specifically told you NOT to open any new credit accounts and to avoid unnecessary credit inquiries before closing. That advice is ringing in your head right now.
+
+This is a source of enormous pride and hope for you. Home prices have gone up so much in recent years that you feel lucky to have gotten pre-approved when you did. If rates go up more, or prices climb, you might miss your window. Everything you're doing financially right now is pointed at this one goal.
+
+You are not hostile to Republic Finance — you've probably had a loan here before or know someone who has. But you're cautious. You're not going to risk your mortgage approval for any reason. That said, you're a reasonable person and you're open to listening if the associate can explain why this specific call/action wouldn't hurt you.
+
+WHAT CHANGES YOUR MIND:
+- Clear, honest explanation about how isolated inquiries work vs. multiple applications in a short window
+- If the associate acknowledges your home purchase and shows they understand why you're cautious
+- If they uncover a need that is genuinely time-sensitive (something you need BEFORE you close)
+- If they reassure you that checking options doesn't obligate you to anything
+
+WHAT A GOOD CALL LOOKS LIKE (even without an application):
+Associate respects your situation, explains our products, leaves you feeling good about Republic Finance, and maybe plants the seed for AFTER closing. A graceful "we'll reach back out after you close" is a real win.
+
+KEY BEHAVIORAL SIGNALS:
+- Will mention the home purchase and mortgage concern early
+- Softens if associate acknowledges the situation and doesn't push
+- Responds to education about inquiries (not all bad)
+- Will give serious thought to an application if a compelling time-sensitive need is uncovered
+- Ends warmly if associate respects the situation
+`,
+
+  resistant_spouse: `
+BACKSTORY & PERSONALITY:
+You have been with your partner/spouse for many years. Financial decisions — especially loans — are genuinely something you make together. This isn't an excuse to get off the phone. You actually mean it. You would feel uncomfortable going forward with any kind of application without at least mentioning it to your partner first.
+
+You don't have a strong objection to Republic Finance specifically. You may even have used them before. You just have a process for these things. Your partner is frugal and careful, and over the years you've learned that making financial decisions without at least a quick conversation leads to friction at home that isn't worth it.
+
+Beyond the spouse objection, you have the same normal human reactions as anyone — you might be tired, busy, mildly skeptical, or actually curious depending on the mood. Pick a personality that makes sense and be consistent.
+
+WHAT CHANGES YOUR MIND:
+- Associate explains clearly that doing an application doesn't lock you into anything — no commitment, no decision today
+- If the application is positioned as just gathering information so you CAN have that conversation with your spouse from an informed position
+- If an underlying need comes up that you actually want to pursue
+- If the associate is warm, not pushy, and respects your process
+
+WHAT A GOOD CALL LOOKS LIKE:
+Associate puts you at ease, overcomes the objection enough to take the application (understanding you're still not "deciding" anything), OR schedules a callback for both you and your spouse. Not getting an application is fine if the associate leaves the door genuinely open.
+
+KEY BEHAVIORAL SIGNALS:
+- Will raise the spouse objection early
+- Stays warmer than resistant/irrational — this is not hostility, just process
+- Responds well to "this doesn't obligate you to anything"
+- Will agree to a callback if associate asks for a specific time when spouse is available
+- Will take the application if associate finds a real need and reassures appropriately
+`,
+
+  former_customer: `
+BACKSTORY & PERSONALITY:
+You paid off your Republic Finance loan and you're proud of it. You've tested the market since then — you have a loan with another fintech company (maybe LendingClub, SoFi, or a credit union app) and it was honestly pretty seamless. Online application, digital documents, funds in your account in 48 hours. You appreciated not having to go into a branch.
+
+But here's the thing: you actually liked the people at your Republic branch. They knew your name. When you had a hard month they worked with you. The digital lender you went to was efficient but completely impersonal — when you had a question you got a chatbot. You want the relationship AND the modern experience.
+
+You work in something tech-adjacent or professional — maybe logistics management, healthcare admin, accounting, or project management. You're digitally comfortable and have high expectations for how services should work in 2025.
+
+WHAT CHANGES YOUR MIND:
+- Associate acknowledges you left and welcomes you back without being weird about it
+- Mentions the digital options Republic is building (loan by phone, online apps being piloted)
+- Emphasizes the human relationship that you actually missed
+- Brings up your history with Republic and the fact that they've always been there for you
+
+WHAT A GOOD CALL LOOKS LIKE:
+Application is very achievable here if associate taps into the nostalgia for the relationship while addressing the digital concern. You're actually looking for a reason to come back.
+
+KEY BEHAVIORAL SIGNALS:
+- Will bring up the competitor/fintech experience
+- Responds warmly when associate mentions the personal relationship
+- Asks about digital/online options
+- Softens considerably when associate mentions loan by phone or other modern options
+- Ready to take an application if associate hits the right notes
+`,
+
+
+  profile_a: `
+BACKSTORY & PERSONALITY:
+You are a 42-year-old woman who has been raising two teenage kids largely on your own since a difficult divorce several years ago. You work as a medical office coordinator — same practice for over a decade. Your employer considers you dependable and you take pride in that.
+
+For most of your adult life you managed money reasonably well. Not saving a lot, but paying your bills and keeping your credit in decent shape. The last couple of years have been different. Groceries and insurance cost more, and your oldest is starting to look at colleges. A transmission repair, orthodontic work, and school expenses gradually made their way onto credit cards. You don't see yourself as someone "in debt" exactly — but you're keeping track of four separate payments every month and it's starting to feel like a lot.
+
+Your biggest concern isn't the balance. It's the stress. You want predictability. You want to know that if your car breaks down next month or one of the kids needs something, you have a path forward. You are skeptical of lenders — you've heard pitches before and you don't want to make a mistake. But if someone actually listens to your situation instead of just running through a script, you will open up.
+
+KEY BEHAVIORAL SIGNALS:
+- Will warm up noticeably if the associate asks about your kids or mentions college
+- Responds to specific payment relief numbers ("your four payments could become one at $140")
+- Gets guarded quickly if the associate feels like they're just reading a sales script
+- Will mention "I've been managing fine" but will also admit quietly that it's getting harder
+- Genuinely open to consolidation if framed as control and simplicity, not rescue
+`,
+
+  profile_b: `
+BACKSTORY & PERSONALITY:
+You are 51. You started in HVAC as a young man and eventually built your own small service business. You're not wealthy but you've always been resourceful — if something breaks, you fix it. Your truck is your livelihood. It carries your tools, gets you to customers, represents years of hard work. You own it free and clear and that matters to you more than most people would understand.
+
+The last few years have been tough. Equipment costs went up, parts took longer to arrive, and a few health-related expenses caught you off guard. Nothing catastrophic — just a slow erosion of the financial cushion you spent years building. You have a business credit card balance, some medical debt, and a Republic Finance loan. You're current on all of them but the payments are getting annoying.
+
+You view borrowing as a temporary solution, not a lifestyle. You've done it before but you don't enjoy it. When someone calls trying to get you to do something with your finances, your first instinct is to push back. You're not hostile — just skeptical. You've seen too many people get sold something that sounded good and wasn't.
+
+The way to reach you is through facts and competence. If the associate clearly knows what they're talking about, gives you specific numbers, and doesn't try to fast-talk you, you'll actually listen. If they feel like a salesperson, you'll end the call.
+
+KEY BEHAVIORAL SIGNALS:
+- Will state early that he doesn't like debt and prefers to just pay things off
+- Will push back hard if the truck comes up as collateral — "that's not happening"
+- Responds when the associate demonstrates specific knowledge (not "we can save you money" but "your Chase payment plus the CareCredit adds up to $138/mo — here's what one payment looks like")
+- Warms slowly but genuinely — once trust is there, willing to have a real conversation
+- Will ask pointed questions to test whether the associate knows their product
+`,
+
+  profile_c: `
+BACKSTORY & PERSONALITY:
+You are 36, a regional operations manager who earns good money and by most appearances has it together. Friends and colleagues would describe you as successful. What they don't see is that you've been quietly using credit cards as a bridge for years. A vacation, a repair, a balance transfer that solved one problem and created another. None of it was unreasonable in the moment. Collectively it adds up to more than you've fully registered.
+
+You just got a promotion and a raise, and you're genuinely excited about it. In your mind, this is the turning point — the moment when you finally get ahead of things. You're optimistic by nature and you genuinely believe that's true. What you haven't fully acknowledged is that every previous raise has been absorbed by lifestyle adjustments, leaving you in roughly the same position.
+
+You're not in denial exactly. You just tend to focus on the monthly payment rather than the total picture. "I can handle $93 a month" feels manageable even when there are five of those.
+
+You respond well to the math being laid out clearly and respectfully. Not in a lecturing way — just: here's what you're paying, here's what one payment could look like, here's what this could mean with your new income. Frame it as a smart move for someone who's already on an upward trajectory, and you'll engage. Frame it as a rescue and you'll push back.
+
+KEY BEHAVIORAL SIGNALS:
+- Will bring up the promotion and raise naturally — this is her confidence anchor
+- Responds well to "this is actually the right time to make this move" framing
+- Gets defensive if she feels like she's being told she's in trouble
+- Will object "I think I can handle it now" — acknowledge it, then show her the math
+- Open to consolidation as long as it feels like a forward-looking move, not a bailout
 `,
 
 };
@@ -650,6 +1134,12 @@ function printDebrief() {
 }
 
 
+
+// ============================================================
+
+
+
+
 const ARCHETYPE_CONFIGS = {
   'The Hustler':       {focus:'qualifying and converting calls to applications',         primary:'lcc', coaching:['asking qualifying questions','discovering financial needs early','transitioning from rapport to offer']},
   'Strong Opener':     {focus:'closing the application and asking for the business',      primary:'pcr', coaching:['asking for commitment','overcoming late-stage objections','setting the appointment']},
@@ -664,14 +1154,49 @@ const ARCHETYPE_CONFIGS = {
 };
 
 const BUREAU_TEMPLATES = {
-  consolidation_candidate:{label:"Consolidation Candidate",tier:2,twentile:7,fico:619,income:4800,occupation:"Warehouse Supervisor",call_type_fit:["pcr", "lcc"],accounts:[{creditor:"OneMain Financial",type:"Personal Loan",balance:6200,payment:187,status:"Current",code:"FC"},{creditor:"Capital One",type:"Credit Card",balance:1840,payment:55,status:"Current",code:"BC"},{creditor:"Marlin Finance",type:"Personal Loan",balance:3100,payment:124,status:"30-Day Late x2",code:"FC"},{creditor:"Wells Fargo Auto",type:"Auto Loan",balance:8900,payment:310,status:"Current",code:"FA"},{creditor:"Synchrony/Amazon",type:"Retail Card",balance:620,payment:25,status:"Current",code:"BC"}],total_monthly_debt:701,residual_income:"approx $1,250 after known obligations",vehicle:{year:2019,make:"Ford",model:"F-150",est_value:18500,lien_holder:"Wells Fargo Auto",lien_balance:8900},prep_hooks:["Two FC (consumer finance) loans present \u2014 OneMain $6,200 and Marlin $3,100 \u2014 total $9,300 in consumer finance debt. Strong consolidation story.", "Wells Fargo Auto lien = vehicle equity ~$9,600. Auto secured conversation possible if consolidating consumer finance debt.", "Marlin has 30-day lates \u2014 customer may be stretched. Consolidation could reduce payments and relieve pressure.", "Total monthly debt $701 on $4,800 income = 14.6% DTI \u2014 manageable but the consumer finance stack is heavy."],customer_credit_awareness:"Knows their score is \"not great\" but not sure exactly why. Worried about more inquiries because they got declined somewhere recently.",likely_objections:["inquiry concern (got declined recently, nervous about more pulls)", "monthly payment concern", "already has loans \u2014 does not want more debt"],responds_well_to:["consolidation math \u2014 showing total payment reduction", "acknowledging the Marlin situation without judgment", "mentioning the Wells Fargo auto equity specifically"],credit_inquiry_education:null,notes:"Consolidation candidate with auto secured opportunity. Marlin lates suggest payment stress \u2014 consolidation pitch is genuinely in their interest."},
-  stable_pcr:{label:"Stable PCR \u2014 Loyal Customer",tier:1,twentile:4,fico:658,income:5400,occupation:"Medical Billing Specialist",call_type_fit:["pcr"],accounts:[{creditor:"Republic Finance",type:"Personal Loan (US)",balance:4200,payment:198,status:"Current \u2014 Never Late",code:"FC"},{creditor:"Discover",type:"Credit Card",balance:890,payment:35,status:"Current",code:"BC"},{creditor:"Toyota Financial",type:"Auto Loan",balance:14200,payment:378,status:"Current",code:"FA"},{creditor:"Conn's",type:"Retail Installment",balance:1100,payment:62,status:"Current",code:"BC"},{creditor:"LVNV Funding",type:"Collection",balance:430,payment:0,status:"Collection",code:"CO"}],total_monthly_debt:673,residual_income:"approx $1,850 after known obligations",vehicle:{year:2021,make:"Toyota",model:"Camry",est_value:21000,lien_holder:"Toyota Financial",lien_balance:14200},prep_hooks:["Never missed a payment with Republic Finance \u2014 loyalty is the opening. Acknowledge it.", "Toyota Financial auto loan \u2014 vehicle equity ~$6,800. If targeting an increase, auto secured path opens a larger loan with better terms.", "Small LVNV collection $430 \u2014 customer may be sensitive about this. Do not lead with it but be ready if they raise it.", "Tier 1, Twentile 4 \u2014 this customer qualifies for the best available terms. The offer can be strong."],customer_credit_awareness:"Knows they have good credit, proud of it. Sensitive about the old collection and hopes it does not come up.",likely_objections:["happy with current loan \u2014 not sure they need more", "inquiry concern framed around the collection \u2014 worried it will show", "payment concern \u2014 already paying Toyota"],responds_well_to:["leading with loyalty acknowledgment", "framing as a reward for good payment history", "Toyota equity conversation for auto secured upgrade", "offering to show full proposal before any decision"],credit_inquiry_education:null,notes:"Best-case PCR customer. Strong loyalty play. Auto secured upgrade opportunity through Toyota equity. Collection is old and small \u2014 do not raise it unprompted."},
-  lcc_prospect:{label:"Live Check Recipient \u2014 Tier 3",tier:3,twentile:11,fico:591,income:3900,occupation:"School Bus Driver",call_type_fit:["lcc"],accounts:[{creditor:"World Acceptance",type:"Personal Loan",balance:1800,payment:98,status:"Current",code:"FC"},{creditor:"Credit One Bank",type:"Credit Card",balance:2100,payment:63,status:"30-Day Late x1",code:"BC"},{creditor:"Westlake Financial",type:"Auto Loan",balance:7200,payment:289,status:"Current",code:"FA"},{creditor:"Aaron's",type:"Lease",balance:800,payment:78,status:"Current",code:"BC"},{creditor:"Jefferson Capital",type:"Collection",balance:675,payment:0,status:"Collection",code:"CO"}],total_monthly_debt:528,residual_income:"approx $950 after known obligations",vehicle:{year:2018,make:"Chevrolet",model:"Malibu",est_value:9500,lien_holder:"Westlake Financial",lien_balance:7200},prep_hooks:["Tier 3 + LCC = auto required for origination per UW policy. This conversation has to go auto secured or it does not close.", "Westlake auto lien \u2014 vehicle equity ~$2,300. Not a lot but enough to clear the requirement. Westlake is a subprime auto lender \u2014 consolidating into RF at a better payment structure is a real benefit.", "World Acceptance FC loan $1,800 \u2014 competitor. Consolidation pitch is available if needed.", "Customer already pre-qualified for the check amount \u2014 use this to address approval concerns immediately.", "Credit One 30-day late \u2014 customer may be stretched. Consolidation reducing payment count could help.", "Jefferson Capital collection \u2014 be ready for this to come up. Do not raise it."],customer_credit_awareness:"Skeptical about their own credit. Got the check in the mail, not sure if it's real or a scam. Will ask \"how do you have my information\" \u2014 this is almost certain.",likely_objections:["how do you have my information / is this a scam", "worried they won't be approved despite having the check", "inquiry concern \u2014 heard inquiries hurt your score", "Westlake payment concern \u2014 does not want to be upside down"],responds_well_to:["proactive explanation of how check offers work and that they were pre-qualified", "Westlake consolidation angle \u2014 \"we can wrap that in and you'd have one payment instead of two\"", "inquiry education \u2014 FC bureau codes vs FA codes, one inquiry is not material", "pre-qualification reassurance \u2014 \"the check amount is already approved, we're just formalizing the terms\""],credit_inquiry_education:null,notes:"Tier 3 LCC = auto required. Associate who does not know UW policy will try to close as unsecured and fail at the application stage. Preparation matters enormously here."},
-  house_buyer:{label:"Prospective Home Buyer \u2014 Inquiry Sensitive",tier:2,twentile:6,fico:643,income:5100,occupation:"HVAC Technician",call_type_fit:["pcr", "lcc"],accounts:[{creditor:"Republic Finance",type:"Personal Loan",balance:5500,payment:218,status:"Current \u2014 1 Late (18 mo ago)",code:"FC"},{creditor:"Chase Auto",type:"Auto Loan",balance:11200,payment:342,status:"Current",code:"FA"},{creditor:"Rocket Mortgage",type:"Mortgage Inquiry",balance:0,payment:0,status:"Inquiry only \u2014 pre-approval pending",code:"FM"},{creditor:"Capital One",type:"Credit Card",balance:1400,payment:42,status:"Current",code:"BC"},{creditor:"Synchrony/Lowe's",type:"Retail Card",balance:980,payment:35,status:"Current",code:"BC"}],total_monthly_debt:637,residual_income:"approx $1,500 after known obligations",vehicle:{year:2020,make:"Ram",model:"1500",est_value:28000,lien_holder:"Chase Auto",lien_balance:11200},prep_hooks:["Rocket Mortgage inquiry on bureau \u2014 customer is in mortgage pre-approval process. This WILL come up. Be prepared with the FM vs FC bureau code distinction.", "The associate who knows that one FC inquiry does not materially affect a mortgage application turns this objection into a reason to proceed.", "Chase Auto \u2014 good equity (~$16,800). Auto secured opportunity through a vehicle with solid value.", "One late payment 18 months ago \u2014 customer may be sensitive about this but it is old enough to have minimal impact.", "HVAC technician \u2014 likely seasonal income variation. Good month to consolidate consumer debt before buying a house."],customer_credit_awareness:"Working hard on their credit specifically for the mortgage. Has been told by the mortgage broker to \"not open any new credit.\" This is the primary objection \u2014 it is coming.",likely_objections:["mortgage broker told me not to open new accounts \u2014 this is firm and will be repeated", "inquiry concern specifically framed around mortgage qualification", "does not want anything that could delay or complicate the home purchase"],responds_well_to:["FC vs FM bureau code education \u2014 consumer finance inquiry is a different sector than mortgage", "installment loan with good payment history can improve credit mix for mortgage underwriting", "showing the proposal first \u2014 \"let me just show you what it would look like, no obligation\"", "acknowledging the house purchase is important and showing you understand the concern"],credit_inquiry_education:{key_point:"FC (consumer finance) inquiries are a separate sector from FM (mortgage) inquiries. FICO does not treat them the same way. A single FC inquiry has a small, temporary impact \u2014 typically 0-5 points \u2014 that recovers within months. It will not derail a mortgage pre-approval that is already in process.",bonus_point:"A well-managed installment loan with consistent payment history can actually improve credit mix, which is a positive factor in mortgage underwriting. The mortgage broker's advice is about not opening new revolving credit (cards) \u2014 a secured installment loan is a different conversation."},notes:"The highest-skill scenario in the set. Associate must demonstrate specific knowledge of bureau coding and mortgage vs consumer finance inquiry treatment to overcome the objection credibly. Generic reassurance will not work here."},
-  resistant_spouse:{label:"Resistant \u2014 Spouse Makes Decisions",tier:2,twentile:9,fico:608,income:4200,occupation:"Restaurant Manager",call_type_fit:["pcr", "lcc"],accounts:[{creditor:"Springleaf/OneMain",type:"Personal Loan",balance:5100,payment:203,status:"60-Day Late x1, Now Current",code:"FC"},{creditor:"First Premier Bank",type:"Credit Card",balance:980,payment:35,status:"Current",code:"BC"},{creditor:"Regional Management",type:"Personal Loan",balance:2300,payment:115,status:"Current",code:"FC"},{creditor:"JPMCB Auto Finance",type:"Auto Loan",balance:10800,payment:341,status:"Current",code:"FA"},{creditor:"Midland Credit",type:"Collection",balance:1200,payment:0,status:"Collection",code:"CO"}],total_monthly_debt:694,residual_income:"approx $800 after known obligations \u2014 tight",vehicle:{year:2017,make:"Honda",model:"CR-V",est_value:14000,lien_holder:"JPMCB Auto",lien_balance:10800},prep_hooks:["Two FC loans totaling $7,400 \u2014 OneMain and Regional Management. Consolidation reduces account count and could reduce payment.", "JPMCB Auto \u2014 equity ~$3,200. Not strong but potentially enough depending on tier. Auto secured option is marginal.", "Previous 60-day late now current \u2014 shows recovery but suggests prior stress. RI is tight at ~$800.", "Midland collection $1,200 \u2014 will almost certainly come up. Customer likely sensitive and defensive about it.", "Restaurant manager income may be variable/partially tip-based \u2014 verified RI calculation matters here."],customer_credit_awareness:"Defensive about their credit history. Knows about the old late and the collection. Primary deflection will be spouse \u2014 not a genuine no, a defense mechanism.",likely_objections:["wife/husband handles the finances \u2014 need to talk to them first", "not a good time \u2014 at work", "worried about the collection affecting approval", "already has too many loans"],responds_well_to:["converting the spouse objection to a specific callback time \u2014 \"is this evening or tomorrow morning better for both of you?\"", "acknowledging the collection without judgment \u2014 \"I can see there was a situation a while back, we look at the full picture not just one item\"", "consolidation math \u2014 showing that two FC payments becoming one could actually reduce monthly outflow", "not pushing \u2014 if they need to talk to spouse, commit to a specific time and honor it"],credit_inquiry_education:null,notes:"The spouse objection is a classic defense mechanism, not a firm no. The skill is converting it to a scheduled callback without pressure. Do not try to close on this call if the spouse card is played \u2014 get the callback and treat that as the win."},
-  former_customer:{label:"Former Customer \u2014 Paid Off",tier:2,twentile:6,fico:634,income:4600,occupation:"Maintenance Technician",call_type_fit:["pcr", "lcc"],accounts:[{creditor:"Republic Finance (PAID)",type:"Personal Loan",balance:0,payment:0,status:"Paid \u2014 Closed 8 mo ago",code:"FC"},{creditor:"Capital One",type:"Credit Card",balance:2100,payment:63,status:"Current",code:"BC"},{creditor:"AmeriCredit / GM Financial",type:"Auto Loan",balance:9800,payment:312,status:"Current",code:"FA"},{creditor:"Synchrony / Care Credit",type:"Medical",balance:1400,payment:55,status:"Current",code:"BC"},{creditor:"Marlin Business",type:"Personal Loan",balance:2800,payment:118,status:"30-Day Late x1",code:"FC"}],total_monthly_debt:548,residual_income:"approx $1,350 after known obligations",vehicle:{year:2020,make:"GMC",model:"Sierra",est_value:22000,lien_holder:"AmeriCredit",lien_balance:9800},prep_hooks:["Former customer \u2014 paid off 8 months ago. Lead with the relationship: \"we really valued having you as a customer.\"", "Marlin 30-day late \u2014 payment stress present. Consolidation pitch is genuine.", "GM Financial auto loan \u2014 strong equity (~$12,200). Auto secured opportunity is excellent here.", "Care Credit medical balance \u2014 common consolidation candidate. Monthly payment reduction angle is real.", "Tier 2 former customer = standard authority, good product eligibility. Full new money credit on any new loan."],customer_credit_awareness:"Proud they paid off the RF loan. Feels financially responsible. Not sure they need more debt but open to hearing if there's a real benefit.",likely_objections:["just paid off a loan, does not want more debt right now", "doing fine without a loan", "worried about going back into debt"],responds_well_to:["acknowledging they paid off their loan \u2014 show you know their history", "framing as a smart financial move not more debt \u2014 consolidation reducing total payments", "GMC truck equity conversation \u2014 \"you have a significant asset we could work with\"", "no pressure framing \u2014 \"just want to show you what's possible given your situation\""],credit_inquiry_education:null,notes:"Former customer who paid off cleanly is a warm lead \u2014 they know the company and had a good experience. Full new money credit. Auto equity is strong. Don't lead with \"want another loan\" \u2014 lead with the relationship and what's changed."},
-  scam_skeptic:{label:"LCC Scam Skeptic",tier:3,twentile:12,fico:582,income:3700,occupation:"Retail Associate",call_type_fit:["lcc"],accounts:[{creditor:"World Finance",type:"Personal Loan",balance:1600,payment:92,status:"Current",code:"FC"},{creditor:"Credit One",type:"Credit Card",balance:1900,payment:57,status:"Current",code:"BC"},{creditor:"Santander Consumer",type:"Auto Loan",balance:8100,payment:298,status:"Current",code:"FA"},{creditor:"Fingerhut",type:"Retail",balance:340,payment:22,status:"Current",code:"BC"},{creditor:"Portfolio Recovery",type:"Collection",balance:890,payment:0,status:"Collection",code:"CO"}],total_monthly_debt:469,residual_income:"approx $880 after known obligations \u2014 tight",vehicle:{year:2017,make:"Honda",model:"Accord",est_value:10500,lien_holder:"Santander Consumer",lien_balance:8100},prep_hooks:["This customer received a live check but thinks it might be a scam \u2014 \"how do you have my information\" is coming immediately.", "Santander auto \u2014 equity only ~$2,400. Marginal but sufficient for Tier 3 auto requirement.", "Tier 3 + LCC = auto required per UW policy. Must go auto secured or cannot close.", "World Finance FC loan \u2014 competitor consolidation angle available.", "Collection present \u2014 do not raise it. Be ready if they bring it up.", "Key: establish legitimacy FIRST before any product discussion. Scam concern overrides everything until resolved."],customer_credit_awareness:"Very skeptical. Got the check in the mail, thought it was junk mail or a scam. Has heard about check fraud. Will be guarded until legitimacy is established.",likely_objections:["is this a scam / how do you have my information", "I threw that check away / I don't have it anymore", "I don't give out my personal information over the phone", "worried they won't get approved anyway"],responds_well_to:["professional, calm explanation of how check offers work \u2014 pre-screened, not random", "offering to verify identity through RF systems \u2014 \"I can confirm details that match your file\"", "not rushing past the scam concern \u2014 fully resolving it before moving to product", "Santander consolidation angle once trust is established"],credit_inquiry_education:null,notes:"The hardest LCC call. Legitimacy must be established completely before any product discussion. Associate who rushes to pitch will lose this call. Associate who stays calm, explains the pre-screen process, and earns trust has a real shot. Tier 3 = auto required."},
-  cosigner_candidate:{label:"Thin File \u2014 Co-Signer Opportunity",tier:4,twentile:14,fico:561,income:3200,occupation:"Food Service Worker",call_type_fit:["lcc"],accounts:[{creditor:"Capital One Secured",type:"Secured Card",balance:480,payment:25,status:"Current",code:"BC"},{creditor:"Credit One",type:"Credit Card",balance:620,payment:25,status:"30-Day Late x1",code:"BC"},{creditor:"Westlake Financial",type:"Auto Loan",balance:6200,payment:241,status:"Current",code:"FA"},{creditor:"Rent-A-Center",type:"Lease",balance:520,payment:48,status:"Current",code:"BC"},{creditor:"Cavalry Portfolio",type:"Collection",balance:1100,payment:0,status:"Collection",code:"CO"}],total_monthly_debt:339,residual_income:"approx $700 after known obligations \u2014 very tight",vehicle:{year:2016,make:"Toyota",model:"Corolla",est_value:8500,lien_holder:"Westlake Financial",lien_balance:6200},prep_hooks:["Tier 4 + LCC = auto required per UW policy. Vehicle equity ~$2,300 \u2014 marginal.", "Only 5 trades, one late, one collection, low income \u2014 this is a challenging approval.", "Co-signer conversation is the PATH to a win here \u2014 a qualifying co-borrower changes the picture significantly.", "Do NOT promise approval. Frame as \"let me see what options we have \u2014 there may be a path.\"", "Westlake is a subprime auto lender \u2014 consolidation reducing that payment is a real benefit if a co-signer enables a better loan.", "Twentile 14 \u2014 limited eligibility. Be honest about the challenge while showing the path."],customer_credit_awareness:"Knows their credit is not great. Has been declined before. Defensive about it. Will assume denial before you even check.",likely_objections:["I know I won't get approved, I have bad credit", "I've been turned down everywhere", "I don't want another inquiry if I'm just going to get denied", "I don't have anyone to co-sign"],responds_well_to:["not dismissing the concern \u2014 acknowledging the credit situation honestly", "co-signer framing as a tool not a judgment \u2014 \"it's a common path for a lot of people\"", "focusing on what IS possible rather than what isn't", "soft inquiry first before committing to hard pull"],credit_inquiry_education:{key_point:"For Tier 4 customers, a soft pull first to assess options before a hard inquiry is a legitimate offer. It shows respect for their credit concern while opening the path to an application.",bonus_point:"Co-signer conversations: frame it as a financial tool that many customers use, not a reflection of their creditworthiness. The co-signer is a bridge, not a judgment."},notes:"Tier 4 customer \u2014 auto required, co-signer likely needed. The win here is NOT closing a loan today. The win is identifying the co-signer path, getting agreement to explore it, and scheduling a follow-up. Associate who handles this gracefully shows real consultant skill."}
+  consolidation_candidate:{_key:'consolidation_candidate',label:"Consolidation Candidate",tier:2,twentile:7,fico:619,income:4800,occupation:"Warehouse Supervisor",call_type_fit:["pcr", "lcc"],accounts:[{creditor:"OneMain Financial",type:"Personal Loan",balance:6200,payment:187,status:"Current",code:"FC"},{creditor:"Capital One",type:"Credit Card",balance:1840,payment:55,status:"Current",code:"BC"},{creditor:"Marlin Finance",type:"Personal Loan",balance:3100,payment:124,status:"30-Day Late x2",code:"FC"},{creditor:"Wells Fargo Auto",type:"Auto Loan",balance:8900,payment:310,status:"Current",code:"FA"},{creditor:"Synchrony/Amazon",type:"Retail Card",balance:620,payment:25,status:"Current",code:"BC"}],total_monthly_debt:701,residual_income:"approx $1,250 after known obligations",vehicle:{year:2019,make:"Ford",model:"F-150",est_value:18500,lien_holder:"Wells Fargo Auto",lien_balance:8900},prep_hooks:["Two FC (consumer finance) loans present \u2014 OneMain $6,200 and Marlin $3,100 \u2014 total $9,300 in consumer finance debt. Strong consolidation story.", "Wells Fargo Auto lien = vehicle equity ~$9,600. Auto secured conversation possible if consolidating consumer finance debt.", "Marlin has 30-day lates \u2014 customer may be stretched. Consolidation could reduce payments and relieve pressure.", "Total monthly debt $701 on $4,800 income = 14.6% DTI \u2014 manageable but the consumer finance stack is heavy."],customer_credit_awareness:"Knows their score is \"not great\" but not sure exactly why. Worried about more inquiries because they got declined somewhere recently.",likely_objections:["inquiry concern (got declined recently, nervous about more pulls)", "monthly payment concern", "already has loans \u2014 does not want more debt"],responds_well_to:["consolidation math \u2014 showing total payment reduction", "acknowledging the Marlin situation without judgment", "mentioning the Wells Fargo auto equity specifically"],credit_inquiry_education:null,notes:"Consolidation candidate with auto secured opportunity. Marlin lates suggest payment stress \u2014 consolidation pitch is genuinely in their interest."},
+  stable_pcr:{_key:'stable_pcr',label:"Stable PCR \u2014 Loyal Customer",tier:1,twentile:4,fico:658,income:5400,occupation:"Medical Billing Specialist",call_type_fit:["pcr"],accounts:[{creditor:"Republic Finance",type:"Personal Loan (US)",balance:4200,payment:198,status:"Current \u2014 Never Late",code:"FC"},{creditor:"Discover",type:"Credit Card",balance:890,payment:35,status:"Current",code:"BC"},{creditor:"Toyota Financial",type:"Auto Loan",balance:14200,payment:378,status:"Current",code:"FA"},{creditor:"Conn's",type:"Retail Installment",balance:1100,payment:62,status:"Current",code:"BC"},{creditor:"LVNV Funding",type:"Collection",balance:430,payment:0,status:"Collection",code:"CO"}],total_monthly_debt:673,residual_income:"approx $1,850 after known obligations",vehicle:{year:2021,make:"Toyota",model:"Camry",est_value:21000,lien_holder:"Toyota Financial",lien_balance:14200},prep_hooks:["Never missed a payment with Republic Finance \u2014 loyalty is the opening. Acknowledge it.", "Toyota Financial auto loan \u2014 vehicle equity ~$6,800. If targeting an increase, auto secured path opens a larger loan with better terms.", "Small LVNV collection $430 \u2014 customer may be sensitive about this. Do not lead with it but be ready if they raise it.", "Tier 1, Twentile 4 \u2014 this customer qualifies for the best available terms. The offer can be strong."],customer_credit_awareness:"Knows they have good credit, proud of it. Sensitive about the old collection and hopes it does not come up.",likely_objections:["happy with current loan \u2014 not sure they need more", "inquiry concern framed around the collection \u2014 worried it will show", "payment concern \u2014 already paying Toyota"],responds_well_to:["leading with loyalty acknowledgment", "framing as a reward for good payment history", "Toyota equity conversation for auto secured upgrade", "offering to show full proposal before any decision"],credit_inquiry_education:null,notes:"Best-case PCR customer. Strong loyalty play. Auto secured upgrade opportunity through Toyota equity. Collection is old and small \u2014 do not raise it unprompted."},
+  lcc_prospect:{_key:'lcc_prospect',label:"Live Check Recipient",tier:3,twentile:11,fico:591,income:3800,
+    occupation:"Customer Service Supervisor",call_type_fit:["lcc"],
+    accounts:[
+      {creditor:"Republic Finance (Live Check)",type:"Installment Loan",balance:1500,payment:89,status:"Current",code:"FC"},
+    ],
+    total_monthly_debt:89,residual_income:"Moderate residual — ~$700/mo after debt service",
+    vehicle:{year:2019,make:"Toyota",model:"Camry",est_value:14000,lien_holder:"Ally Financial",lien_balance:8200},
+    prep_hooks:[
+      "LC amount: $1,500 — welcome call or conversion call",
+      "Open consumer finance trades: ~2 (typical for this tier)",
+      "Bank card utilization: moderate — room for consolidation",
+      "Months at current residence: 18-36 (stable)",
+      "NOTE: Tradeline detail is limited on LCC calls — focus on LC clearing sheet data only"
+    ],
+    customer_credit_awareness:"Understands it's a loan, read the terms on the back of the check. Slightly suspicious but curious. Does NOT expect credit bureau-level knowledge from the caller.",
+    likely_objections:[
+      "How did you get my information?",
+      "I already cashed it, so what happens now?",
+      "I don't want my credit pulled",
+      "I don't really need anything right now",
+      "Can you just do this online? I don't have time for this"
+    ],
+    responds_well_to:[
+      "Clear simple explanation of what the account is",
+      "Reassurance about privacy and data practices",
+      "Efficiency — get to the point quickly",
+      "Finding a hidden need they hadn't connected to this call",
+      "Being told the process is simple and quick"
+    ],
+    credit_inquiry_education:{
+      key_point:"Credit was only pulled when we processed your check. This call is a welcome call — no new pull.",
+      bonus_point:"If you want to convert to a larger loan, we do a soft pull first."
+    },
+    notes:"LCC call — DO NOT score for not discussing tradelines. Win = explained the account + reassured on privacy + asked about needs. Application is a bonus, not required for a good score."
+  },
+
+  house_buyer:{_key:'house_buyer',label:"Prospective Home Buyer \u2014 Inquiry Sensitive",tier:2,twentile:6,fico:643,income:5100,occupation:"HVAC Technician",call_type_fit:["pcr", "lcc"],accounts:[{creditor:"Republic Finance",type:"Personal Loan",balance:5500,payment:218,status:"Current \u2014 1 Late (18 mo ago)",code:"FC"},{creditor:"Chase Auto",type:"Auto Loan",balance:11200,payment:342,status:"Current",code:"FA"},{creditor:"Rocket Mortgage",type:"Mortgage Inquiry",balance:0,payment:0,status:"Inquiry only \u2014 pre-approval pending",code:"FM"},{creditor:"Capital One",type:"Credit Card",balance:1400,payment:42,status:"Current",code:"BC"},{creditor:"Synchrony/Lowe's",type:"Retail Card",balance:980,payment:35,status:"Current",code:"BC"}],total_monthly_debt:637,residual_income:"approx $1,500 after known obligations",vehicle:{year:2020,make:"Ram",model:"1500",est_value:28000,lien_holder:"Chase Auto",lien_balance:11200},prep_hooks:["Rocket Mortgage inquiry on bureau \u2014 customer is in mortgage pre-approval process. This WILL come up. Be prepared with the FM vs FC bureau code distinction.", "The associate who knows that one FC inquiry does not materially affect a mortgage application turns this objection into a reason to proceed.", "Chase Auto \u2014 good equity (~$16,800). Auto secured opportunity through a vehicle with solid value.", "One late payment 18 months ago \u2014 customer may be sensitive about this but it is old enough to have minimal impact.", "HVAC technician \u2014 likely seasonal income variation. Good month to consolidate consumer debt before buying a house."],customer_credit_awareness:"Working hard on their credit specifically for the mortgage. Has been told by the mortgage broker to \"not open any new credit.\" This is the primary objection \u2014 it is coming.",likely_objections:["mortgage broker told me not to open new accounts \u2014 this is firm and will be repeated", "inquiry concern specifically framed around mortgage qualification", "does not want anything that could delay or complicate the home purchase"],responds_well_to:["FC vs FM bureau code education \u2014 consumer finance inquiry is a different sector than mortgage", "installment loan with good payment history can improve credit mix for mortgage underwriting", "showing the proposal first \u2014 \"let me just show you what it would look like, no obligation\"", "acknowledging the house purchase is important and showing you understand the concern"],credit_inquiry_education:{key_point:"FC (consumer finance) inquiries are a separate sector from FM (mortgage) inquiries. FICO does not treat them the same way. A single FC inquiry has a small, temporary impact \u2014 typically 0-5 points \u2014 that recovers within months. It will not derail a mortgage pre-approval that is already in process.",bonus_point:"A well-managed installment loan with consistent payment history can actually improve credit mix, which is a positive factor in mortgage underwriting. The mortgage broker's advice is about not opening new revolving credit (cards) \u2014 a secured installment loan is a different conversation."},notes:"The highest-skill scenario in the set. Associate must demonstrate specific knowledge of bureau coding and mortgage vs consumer finance inquiry treatment to overcome the objection credibly. Generic reassurance will not work here."},
+  resistant_spouse:{_key:'resistant_spouse',label:"Resistant \u2014 Spouse Makes Decisions",tier:2,twentile:9,fico:608,income:4200,occupation:"Restaurant Manager",call_type_fit:["pcr", "lcc"],accounts:[{creditor:"Springleaf/OneMain",type:"Personal Loan",balance:5100,payment:203,status:"60-Day Late x1, Now Current",code:"FC"},{creditor:"First Premier Bank",type:"Credit Card",balance:980,payment:35,status:"Current",code:"BC"},{creditor:"Regional Management",type:"Personal Loan",balance:2300,payment:115,status:"Current",code:"FC"},{creditor:"JPMCB Auto Finance",type:"Auto Loan",balance:10800,payment:341,status:"Current",code:"FA"},{creditor:"Midland Credit",type:"Collection",balance:1200,payment:0,status:"Collection",code:"CO"}],total_monthly_debt:694,residual_income:"approx $800 after known obligations \u2014 tight",vehicle:{year:2017,make:"Honda",model:"CR-V",est_value:14000,lien_holder:"JPMCB Auto",lien_balance:10800},prep_hooks:["Two FC loans totaling $7,400 \u2014 OneMain and Regional Management. Consolidation reduces account count and could reduce payment.", "JPMCB Auto \u2014 equity ~$3,200. Not strong but potentially enough depending on tier. Auto secured option is marginal.", "Previous 60-day late now current \u2014 shows recovery but suggests prior stress. RI is tight at ~$800.", "Midland collection $1,200 \u2014 will almost certainly come up. Customer likely sensitive and defensive about it.", "Restaurant manager income may be variable/partially tip-based \u2014 verified RI calculation matters here."],customer_credit_awareness:"Defensive about their credit history. Knows about the old late and the collection. Primary deflection will be spouse \u2014 not a genuine no, a defense mechanism.",likely_objections:["wife/husband handles the finances \u2014 need to talk to them first", "not a good time \u2014 at work", "worried about the collection affecting approval", "already has too many loans"],responds_well_to:["converting the spouse objection to a specific callback time \u2014 \"is this evening or tomorrow morning better for both of you?\"", "acknowledging the collection without judgment \u2014 \"I can see there was a situation a while back, we look at the full picture not just one item\"", "consolidation math \u2014 showing that two FC payments becoming one could actually reduce monthly outflow", "not pushing \u2014 if they need to talk to spouse, commit to a specific time and honor it"],credit_inquiry_education:null,notes:"The spouse objection is a classic defense mechanism, not a firm no. The skill is converting it to a scheduled callback without pressure. Do not try to close on this call if the spouse card is played \u2014 get the callback and treat that as the win."},
+  former_customer:{_key:'former_customer',label:"Former Customer \u2014 Paid Off",tier:2,twentile:6,fico:634,income:4600,occupation:"Maintenance Technician",call_type_fit:["pcr", "lcc"],accounts:[{creditor:"Republic Finance (PAID)",type:"Personal Loan",balance:0,payment:0,status:"Paid \u2014 Closed 8 mo ago",code:"FC"},{creditor:"Capital One",type:"Credit Card",balance:2100,payment:63,status:"Current",code:"BC"},{creditor:"AmeriCredit / GM Financial",type:"Auto Loan",balance:9800,payment:312,status:"Current",code:"FA"},{creditor:"Synchrony / Care Credit",type:"Medical",balance:1400,payment:55,status:"Current",code:"BC"},{creditor:"Marlin Business",type:"Personal Loan",balance:2800,payment:118,status:"30-Day Late x1",code:"FC"}],total_monthly_debt:548,residual_income:"approx $1,350 after known obligations",vehicle:{year:2020,make:"GMC",model:"Sierra",est_value:22000,lien_holder:"AmeriCredit",lien_balance:9800},prep_hooks:["Former customer \u2014 paid off 8 months ago. Lead with the relationship: \"we really valued having you as a customer.\"", "Marlin 30-day late \u2014 payment stress present. Consolidation pitch is genuine.", "GM Financial auto loan \u2014 strong equity (~$12,200). Auto secured opportunity is excellent here.", "Care Credit medical balance \u2014 common consolidation candidate. Monthly payment reduction angle is real.", "Tier 2 former customer = standard authority, good product eligibility. Full new money credit on any new loan."],customer_credit_awareness:"Proud they paid off the RF loan. Feels financially responsible. Not sure they need more debt but open to hearing if there's a real benefit.",likely_objections:["just paid off a loan, does not want more debt right now", "doing fine without a loan", "worried about going back into debt"],responds_well_to:["acknowledging they paid off their loan \u2014 show you know their history", "framing as a smart financial move not more debt \u2014 consolidation reducing total payments", "GMC truck equity conversation \u2014 \"you have a significant asset we could work with\"", "no pressure framing \u2014 \"just want to show you what's possible given your situation\""],credit_inquiry_education:null,notes:"Former customer who paid off cleanly is a warm lead \u2014 they know the company and had a good experience. Full new money credit. Auto equity is strong. Don't lead with \"want another loan\" \u2014 lead with the relationship and what's changed."},
+  scam_skeptic:{_key:'scam_skeptic',label:"LCC Scam Skeptic",tier:3,twentile:12,fico:582,income:3700,occupation:"Retail Associate",call_type_fit:["lcc"],accounts:[{creditor:"World Finance",type:"Personal Loan",balance:1600,payment:92,status:"Current",code:"FC"},{creditor:"Credit One",type:"Credit Card",balance:1900,payment:57,status:"Current",code:"BC"},{creditor:"Santander Consumer",type:"Auto Loan",balance:8100,payment:298,status:"Current",code:"FA"},{creditor:"Fingerhut",type:"Retail",balance:340,payment:22,status:"Current",code:"BC"},{creditor:"Portfolio Recovery",type:"Collection",balance:890,payment:0,status:"Collection",code:"CO"}],total_monthly_debt:469,residual_income:"approx $880 after known obligations \u2014 tight",vehicle:{year:2017,make:"Honda",model:"Accord",est_value:10500,lien_holder:"Santander Consumer",lien_balance:8100},prep_hooks:["This customer received a live check but thinks it might be a scam \u2014 \"how do you have my information\" is coming immediately.", "Santander auto \u2014 equity only ~$2,400. Marginal but sufficient for Tier 3 auto requirement.", "Tier 3 + LCC = auto required per UW policy. Must go auto secured or cannot close.", "World Finance FC loan \u2014 competitor consolidation angle available.", "Collection present \u2014 do not raise it. Be ready if they bring it up.", "Key: establish legitimacy FIRST before any product discussion. Scam concern overrides everything until resolved."],customer_credit_awareness:"Very skeptical. Got the check in the mail, thought it was junk mail or a scam. Has heard about check fraud. Will be guarded until legitimacy is established.",likely_objections:["is this a scam / how do you have my information", "I threw that check away / I don't have it anymore", "I don't give out my personal information over the phone", "worried they won't get approved anyway"],responds_well_to:["professional, calm explanation of how check offers work \u2014 pre-screened, not random", "offering to verify identity through RF systems \u2014 \"I can confirm details that match your file\"", "not rushing past the scam concern \u2014 fully resolving it before moving to product", "Santander consolidation angle once trust is established"],credit_inquiry_education:null,notes:"The hardest LCC call. Legitimacy must be established completely before any product discussion. Associate who rushes to pitch will lose this call. Associate who stays calm, explains the pre-screen process, and earns trust has a real shot. Tier 3 = auto required."},
+  cosigner_candidate:{_key:'cosigner_candidate',label:"Thin File \u2014 Co-Signer Opportunity",tier:4,twentile:14,fico:561,income:3200,occupation:"Food Service Worker",call_type_fit:["lcc"],accounts:[{creditor:"Capital One Secured",type:"Secured Card",balance:480,payment:25,status:"Current",code:"BC"},{creditor:"Credit One",type:"Credit Card",balance:620,payment:25,status:"30-Day Late x1",code:"BC"},{creditor:"Westlake Financial",type:"Auto Loan",balance:6200,payment:241,status:"Current",code:"FA"},{creditor:"Rent-A-Center",type:"Lease",balance:520,payment:48,status:"Current",code:"BC"},{creditor:"Cavalry Portfolio",type:"Collection",balance:1100,payment:0,status:"Collection",code:"CO"}],total_monthly_debt:339,residual_income:"approx $700 after known obligations \u2014 very tight",vehicle:{year:2016,make:"Toyota",model:"Corolla",est_value:8500,lien_holder:"Westlake Financial",lien_balance:6200},prep_hooks:["Tier 4 + LCC = auto required per UW policy. Vehicle equity ~$2,300 \u2014 marginal.", "Only 5 trades, one late, one collection, low income \u2014 this is a challenging approval.", "Co-signer conversation is the PATH to a win here \u2014 a qualifying co-borrower changes the picture significantly.", "Do NOT promise approval. Frame as \"let me see what options we have \u2014 there may be a path.\"", "Westlake is a subprime auto lender \u2014 consolidation reducing that payment is a real benefit if a co-signer enables a better loan.", "Twentile 14 \u2014 limited eligibility. Be honest about the challenge while showing the path."],customer_credit_awareness:"Knows their credit is not great. Has been declined before. Defensive about it. Will assume denial before you even check.",likely_objections:["I know I won't get approved, I have bad credit", "I've been turned down everywhere", "I don't want another inquiry if I'm just going to get denied", "I don't have anyone to co-sign"],responds_well_to:["not dismissing the concern \u2014 acknowledging the credit situation honestly", "co-signer framing as a tool not a judgment \u2014 \"it's a common path for a lot of people\"", "focusing on what IS possible rather than what isn't", "soft inquiry first before committing to hard pull"],credit_inquiry_education:{key_point:"For Tier 4 customers, a soft pull first to assess options before a hard inquiry is a legitimate offer. It shows respect for their credit concern while opening the path to an application.",bonus_point:"Co-signer conversations: frame it as a financial tool that many customers use, not a reflection of their creditworthiness. The co-signer is a bridge, not a judgment."},notes:"Tier 4 customer \u2014 auto required, co-signer likely needed. The win here is NOT closing a loan today. The win is identifying the co-signer path, getting agreement to explore it, and scheduling a follow-up. Associate who handles this gracefully shows real consultant skill."}
 }
 
 const DIFFICULTY_SETTINGS = {
@@ -679,6 +1204,86 @@ const DIFFICULTY_SETTINGS = {
   hesitant:     {label:'Hesitant',     icon:'🟡', desc:'Needs convincing — will raise objections'},
   resistant:    {label:'Resistant',    icon:'🟠', desc:'Strong objections, needs real effort to close'},
   irrational:   {label:'Irrational',   icon:'🔴', desc:'Composure test — no logical path to close'},
+  profile_a:{label:"Single Mom — Medical Admin",tier:3,twentile:9,fico:628,income:3400,
+    occupation:"Medical Office Coordinator",call_type_fit:["pcr","consolidation"],
+    accounts:[
+      {creditor:"Capital One",     type:"Credit Card", balance:1840, payment:52, status:"Current",    code:"BC"},
+      {creditor:"Discover",        type:"Credit Card", balance:1320, payment:38, status:"Current",    code:"BC"},
+      {creditor:"Synchrony/Care",  type:"Medical Credit",balance:780, payment:29, status:"×1 30-Day", code:"BC"},
+      {creditor:"Republic Finance",type:"Installment", balance:1200, payment:87, status:"Current",    code:"FC"},
+    ],
+    total_monthly_debt:206,residual_income:"Tight — ~$500/mo after debt service on single income",
+    vehicle:{year:2018,make:"Honda",model:"Pilot",est_value:16000,lien_holder:"Free & Clear",lien_balance:0},
+    prep_hooks:[
+      "4 open accounts — 3 card payments is the stress point, not the balance",
+      "Synchrony 30-day late — first sign of crack in otherwise clean history",
+      "Single income household with teen college costs coming",
+      "Consolidation pitch: reduce 4 payments to 1, save ~$60-80/mo",
+    ],
+    likely_objections:[
+      "I've been managing fine on my own",
+      "I don't want to make things worse",
+      "I need to think about it",
+      "Is this going to hurt my credit?",
+    ],
+    notes:"Skeptical but genuinely open if she feels heard. Ask about the kids, the upcoming college costs. Don't push — listen first."
+  },
+
+  profile_b:{label:"HVAC Owner — Skeptic",tier:3,twentile:8,fico:608,income:4800,
+    occupation:"Self-Employed HVAC Contractor",call_type_fit:["pcr","consolidation"],
+    accounts:[
+      {creditor:"Republic Finance",  type:"Installment",  balance:2100, payment:142, status:"Current",    code:"FC"},
+      {creditor:"Chase Business",    type:"Business Card",balance:3200, payment:96,  status:"Current",    code:"BC"},
+      {creditor:"Synchrony/Home",    type:"Store Credit", balance:940,  payment:35,  status:"Current",    code:"BC"},
+      {creditor:"CareCredit",        type:"Medical Credit",balance:1100,payment:42,  status:"Current",    code:"BC"},
+    ],
+    total_monthly_debt:315,residual_income:"Moderate — variable income months tighten this significantly",
+    vehicle:{year:2016,make:"Ford",model:"F-250",est_value:22000,lien_holder:"Free & Clear",lien_balance:0},
+    prep_hooks:[
+      "Truck: 2016 F-250 — owned free and clear, emotionally significant, DO NOT lead with auto collateral",
+      "Self-employed: income variability is real — monthly budget can swing $1,000+",
+      "Business card + home credit + medical = 3 separate life pressures converging",
+      "Consolidation math: $315/mo across 4 accounts → could be ~$220/mo single payment",
+      "He will test your knowledge — be specific, not vague",
+    ],
+    likely_objections:[
+      "I don't like debt — I'd rather just pay things off",
+      "I'm not putting my truck up for anything",
+      "I've been doing fine without taking on more",
+      "What's the catch?",
+      "How do I know your rate is actually better?",
+    ],
+    notes:"Do NOT bring up the truck as collateral unless he does. Earn trust through specifics and honesty. He responds to logic, not rapport small talk. Be direct."
+  },
+
+  profile_c:{label:"Manager — Lifestyle Inflation",tier:2,twentile:13,fico:671,income:5800,
+    occupation:"Regional Operations Manager",call_type_fit:["pcr","consolidation"],
+    accounts:[
+      {creditor:"Chase Sapphire",   type:"Credit Card",balance:4200, payment:126, status:"Current",    code:"BC"},
+      {creditor:"Citi Double Cash", type:"Credit Card",balance:3100, payment:93,  status:"Current",    code:"BC"},
+      {creditor:"BofA Travel",      type:"Credit Card",balance:2650, payment:80,  status:"Current",    code:"BC"},
+      {creditor:"Republic Finance", type:"Installment", balance:1800, payment:124, status:"Current",   code:"FC"},
+      {creditor:"Barclays",         type:"Credit Card",balance:1400, payment:42,  status:"×1 30-Day", code:"BC"},
+    ],
+    total_monthly_debt:465,residual_income:"Looks good on paper — but lifestyle absorbs the surplus",
+    vehicle:{year:2022,make:"Acura",model:"TLX",est_value:29000,lien_holder:"Honda Financial",lien_balance:18400},
+    prep_hooks:[
+      "5 accounts, $13,150 total revolving balance — more than she realizes",
+      "Barclays 30-day late is new — early warning signal",
+      "Just got a raise — she feels momentum. Use it: 'this is the right time to clean this up'",
+      "Consolidation: $465/mo across 5 → could save $150-180/mo and one simple payment",
+      "2022 Acura TLX — $10,600 equity, financed with Honda Financial",
+    ],
+    likely_objections:[
+      "I just got a raise — I think I can handle it from here",
+      "I don't want to close my credit cards",
+      "I've done balance transfers before",
+      "I'm not sure I need to do anything right now",
+    ],
+    notes:"She's optimistic and that's the entry point — 'you're in a great position to make this move right now.' Frame consolidation as the smart next step, not a rescue. Don't lecture about habits."
+  },
+
+
 };
 
 const FIRST_NAMES=["Robert", "James", "Michael", "David", "Kevin", "Marcus", "Anthony", "Chris", "Brandon", "Derrick", "Terrence", "Darnell", "LaShawn", "Cedric", "Reginald", "Patricia", "Sandra", "Tamika", "Latoya", "Angela", "Deborah", "Michelle", "Vanessa", "Keisha", "Tiffany", "Crystal", "Stephanie", "Renee", "Yolanda", "Lisa", "Jennifer", "Karen", "Susan", "Amanda", "Ashley", "Jessica", "Brittany", "Carlos", "Miguel", "Jose", "Roberto", "Luis", "Eduardo", "Ramon", "Jorge", "William", "Thomas", "Charles", "Gary", "Larry", "Jerry", "Dennis", "Randy", "Brenda", "Shirley", "Carol", "Ruth", "Dorothy", "Betty", "Helen", "Martha", "Alicia", "Monica", "Natasha", "Tonya", "Monique", "Carla", "Denise", "April", "Travis", "Corey", "Jermaine", "DeShawn", "Rodney", "Marvin", "Leonard", "Donna", "Gloria", "Diana", "Paula", "Cynthia"];
@@ -820,7 +1425,13 @@ function startSimulation() {
   state.customerOccupation=cp.occupation;
   state.customerSituation=cp.situation;
   state.customerFlavor=cp.flavor;
-  state.bureau = applyBureauVariance(baseTemplate, state.customerName);
+  // Named profiles use the generator for full randomization each run
+  const GENERATED_PROFILES = ['profile_a','profile_b','profile_c'];
+  if (GENERATED_PROFILES.includes(state.customerProfile)) {
+    state.bureau = generateProfileBureau(state.customerProfile, state.customerName);
+  } else {
+    state.bureau = applyBureauVariance(baseTemplate, state.customerName);
+  }
 
   state.conversation = [];
   state.turnCount = 0;
@@ -891,8 +1502,67 @@ function weightedRandom(weights) {
 // ============================================================
 function renderBureau() {
   const b = state.bureau;
+  const isLCC = b.lc_data !== undefined && b.lc_data !== null;
+
   const statusClass = s => s.includes('Late') || s.includes('Collection') ? 'status-bad' :
                            s.includes('×1') ? 'status-warn' : 'status-ok';
+
+  // ── History / appreciation badges ──
+  const histBadge = state.histProfile
+    ? `<span style="padding:2px 8px;border-radius:10px;font-size:10px;font-weight:700;background:${
+        state.annoyanceLevel==='fresh'?'#10b98120':
+        state.annoyanceLevel==='mild'?'#3b82f620':
+        state.annoyanceLevel==='moderate'?'#f59e0b20':
+        state.annoyanceLevel==='fatigued'?'#ef444420':'#ef444430'};color:${
+        state.annoyanceLevel==='fresh'?'#10b981':
+        state.annoyanceLevel==='mild'?'#3b82f6':
+        state.annoyanceLevel==='moderate'?'#f59e0b':'#ef4444'}">📞 ${state.histProfile.label}</span>`
+    : '';
+  const apprBadge = state.isAppreciationMonth
+    ? '<span style="padding:2px 8px;border-radius:10px;font-size:10px;font-weight:700;background:#f59e0b20;color:#f59e0b;margin-left:4px">🎉 Appreciation Month</span>'
+    : '';
+
+  // ── LCC path: show LC clearing sheet data only ──
+  if (isLCC) {
+    const lc = b.lc_data;
+    const lcRows = [
+      `<div class="trade-row"><div class="trade-name">Check Amount <span style="color:var(--text3);font-size:10px">LC</span></div><div class="trade-bal" style="color:var(--green);font-weight:700">$${lc.check_amount.toLocaleString()}</div><span class="trade-status status-ok">Cashed</span></div>`,
+      `<div class="trade-row"><div class="trade-name">Open Consumer Finance Trades</div><div class="trade-bal">${lc.open_consumer_finance_trades}</div><span class="trade-status status-ok">on file</span></div>`,
+      `<div class="trade-row"><div class="trade-name">Bank Card Balance (est.)</div><div class="trade-bal">$${lc.bank_card_balance.toLocaleString()}</div><span class="trade-status status-warn">revolving</span></div>`,
+      `<div class="trade-row"><div class="trade-name">Months at Residence</div><div class="trade-bal">${lc.months_at_residence} mo</div><span class="trade-status status-ok">stable</span></div>`,
+      lc.has_mortgage ? `<div class="trade-row"><div class="trade-name">Mortgage</div><div class="trade-bal">Yes</div><span class="trade-status status-ok">homeowner</span></div>` : '',
+    ].filter(Boolean).join('');
+
+    // Show vehicle if available (auto data sometimes on LC clearing sheet)
+    const veh = b.vehicle;
+    const vehRow = veh && veh.lien_holder !== 'Free & Clear'
+      ? `<div class="trade-row"><div class="trade-name">${veh.year} ${veh.make} ${veh.model} <span style="color:var(--text3);font-size:10px">${veh.lien_holder}</span></div><div class="trade-bal">$${veh.lien_balance.toLocaleString()}</div><span class="trade-status status-ok">financed</span></div>`
+      : '';
+
+    document.getElementById('bureau-display').innerHTML = `
+      <div class="bureau-card">
+        <div class="bureau-header">
+          <div>
+            <div class="bureau-name">${state.customerName}</div>
+            <div class="bureau-meta">${b.occupation} · $${b.income.toLocaleString()}/mo income</div>
+            <div class="bureau-meta" style="margin-top:4px">${histBadge}${apprBadge}</div>
+          </div>
+          <div style="text-align:right">
+            <div class="fico-badge">${b.fico}</div>
+            <div style="font-size:9px;color:var(--text3)">FICO</div>
+          </div>
+        </div>
+        <div style="margin:8px 0 4px;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:var(--accent)">📬 LC Clearing Sheet Data</div>
+        ${lcRows}
+        ${vehRow}
+        <div style="margin-top:8px;padding:6px 10px;background:#f59e0b10;border:1px solid #f59e0b30;border-radius:6px;font-size:10px;color:#f59e0b;line-height:1.5">
+          ⚠ Tradeline detail not available on LCC calls. Score based on LC sheet data only — explaining the account, privacy reassurance, and uncovering needs.
+        </div>
+      </div>`;
+    return;
+  }
+
+  // ── Standard PCR path: show bureau tradelines ──
   const trades = b.accounts.map(a => `
     <div class="trade-row">
       <div class="trade-name">${a.creditor} <span style="color:var(--text3);font-size:10px">${a.type}</span></div>
@@ -906,18 +1576,7 @@ function renderBureau() {
         <div>
           <div class="bureau-name">${state.customerName}</div>
           <div class="bureau-meta">${b.occupation} · $${b.income.toLocaleString()}/mo income</div>
-      <div class="bureau-meta" style="margin-top:4px">
-        ${state.histProfile ? `<span style="padding:2px 8px;border-radius:10px;font-size:10px;font-weight:700;background:${
-          state.annoyanceLevel==='fresh'?'#10b98120':
-          state.annoyanceLevel==='mild'?'#3b82f620':
-          state.annoyanceLevel==='moderate'?'#f59e0b20':
-          state.annoyanceLevel==='fatigued'?'#ef444420':'#ef444430'};color:${
-          state.annoyanceLevel==='fresh'?'#10b981':
-          state.annoyanceLevel==='mild'?'#3b82f6':
-          state.annoyanceLevel==='moderate'?'#f59e0b':
-          '#ef4444'}">📞 ${state.histProfile.label}</span>` : ''}
-        ${state.isAppreciationMonth ? '<span style="padding:2px 8px;border-radius:10px;font-size:10px;font-weight:700;background:#f59e0b20;color:#f59e0b;margin-left:4px">🎉 Appreciation Month</span>' : ''}
-      </div>
+          <div class="bureau-meta" style="margin-top:4px">${histBadge}${apprBadge}</div>
         </div>
         <div style="text-align:right">
           <div class="fico-badge">${b.fico}</div>
@@ -929,9 +1588,10 @@ function renderBureau() {
         <span>Total monthly debt: <strong style="color:var(--text)">$${b.total_monthly_debt}/mo</strong></span>
         <span>DTI: <strong style="color:var(--amber)">${Math.round(b.total_monthly_debt/b.income*100)}%</strong></span>
       </div>
-      <div style="margin-top:6px;font-size:11px;color:var(--text2);font-style:italic">${b.notes}</div>
+      <div style="margin-top:6px;font-size:11px;color:var(--text2);font-style:italic">${b.notes||b.residual_income||''}</div>
     </div>`;
 }
+
 
 function renderScenario() {
   const diff      = DIFFICULTY_SETTINGS[state.difficulty];
@@ -983,6 +1643,16 @@ function buildCoachingNotes() {
     } else {
       prepHints.push(`${veh.year} ${veh.make} ${veh.model} — financed with ${veh.lien_holder}, no equity yet — mention refi option`);
     }
+  }
+
+  // For LCC profiles: show clearing sheet data instead of tradelines
+  if (b.lc_data) {
+    prepHints.unshift(`📬 Check Amount: $${b.lc_data.check_amount.toLocaleString()}`);
+    prepHints.push(`Open consumer finance trades: ${b.lc_data.open_consumer_finance_trades}`);
+    prepHints.push(`Bank card balance: ~$${b.lc_data.bank_card_balance.toLocaleString()}`);
+    prepHints.push(`Months at current address: ${b.lc_data.months_at_residence}`);
+    if (b.lc_data.has_mortgage) prepHints.push(`Has mortgage — homeowner`);
+    prepHints.push(`⚠ Tradeline detail NOT available on LCC calls — score on LC sheet data only`);
   }
 
   // Consolidation math — all non-mortgage accounts
@@ -1287,12 +1957,13 @@ OCCUPATION CONTEXT: Your job shapes how you speak and how much time you feel you
 Demographically, ~$${b.income.toLocaleString()}/mo, FICO ~${b.fico}, Tier ${b.tier}.
 ${flav?`Personality: ${flav.desc}`:''}
 ${(()=>{
-  const key=Object.keys(BUREAU_TEMPLATES).find(k=>BUREAU_TEMPLATES[k].label===b.label)||'';
-  const full=getBackstory(key);
-  if(!full)return '';
-  // Send only the KEY BEHAVIORAL SIGNALS section to save tokens
-  const kbs=full.indexOf('KEY BEHAVIORAL SIGNALS');
-  return kbs>=0?full.slice(kbs,kbs+600):full.slice(0,400);
+  // For generated profiles, use profileKey directly; otherwise find by label
+  const key = state.customerProfile || Object.keys(BUREAU_TEMPLATES).find(k=>BUREAU_TEMPLATES[k].label===b.label)||'';
+  const full = getBackstory(key);
+  const bsText = full ? (()=>{ const kbs=full.indexOf('KEY BEHAVIORAL SIGNALS'); return kbs>=0?full.slice(kbs,kbs+600):full.slice(0,400); })() : '';
+  // Inject the specific life event if available
+  const eventNote = b.life_event ? `SPECIFIC LIFE EVENT THIS CUSTOMER EXPERIENCED: ${b.life_event}. Mention this naturally if the associate asks open-ended questions about what's been going on. Don't volunteer it immediately.` : '';
+  return [bsText, eventNote].filter(Boolean).join('\n');
 })()}${state.customerSituation?`\nSituation: ${state.customerSituation}`:''}
 Accounts: ${bureauSum}. ${vCtx}. Monthly debt $${b.total_monthly_debt}/mo. ${b.residual_income}.
 Call: ${state.callType==='pcr'?'renewing your Republic Finance loan':'converting a pre-approved live check'}.
@@ -1329,7 +2000,7 @@ Rules: 1-3 sentences. Natural speech. Vary language. Append when call ends: [CAL
 [CALL_END:relationship] = customer declines application but ends the call warmly — they feel good about the interaction, associate thanked them for their business sincerely, customer says something like "I appreciate you calling" or "maybe next time" in a genuinely warm tone. This is a POSITIVE outcome.
 Conversation:\n${recentConv}
 ${state.customerName}: `;
-  const reqBody=JSON.stringify({model:'claude-sonnet-4-20250514',max_tokens:200,messages:[{role:'user',content:prompt}]});
+  const reqBody=JSON.stringify({model:'claude-sonnet-4-6',max_tokens:200,messages:[{role:'user',content:prompt}]});
   console.log('Customer prompt size:',reqBody.length,'bytes');
   const resp=await fetch('/api/chat',{method:'POST',headers:{'Content-Type':'application/json'},body:reqBody});
   if(!resp.ok){
@@ -1386,11 +2057,25 @@ Customer: ${state.bureau.label} Tier ${state.bureau.tier} FICO ${state.bureau.fi
 Bureau prep: ${state.showedBureauKnowledge} | Qualifying Q: ${state.askedQualifyingQuestion} | Asked for business: ${state.askedForBusiness}
 
 SHORT CALL: <3 turns = max 25pts. <2 turns = max 15pts. Hard cap.
+
+GRADE FRAMEWORK (school grades — people understand these instinctively):
+A (90-100): Application taken on a difficult call, OR exceptional relationship-building with conversion on an easy call. Reserved for truly strong performance.
+B (80-89): Good call — rapport positive, objections handled well, asked for the business. Application not required for a B but the closing attempt must be present and professional.
+C (70-79): Solid call — customer ended the conversation positively, associate covered the product, attempt was made. A warm call with no application but a graceful close = 70-79.
+D (60-69): Developing — real skill gaps, one or more dimensions clearly weak.
+F (<60): Multiple fundamentals missing.
+
+IMPORTANT SCORE GUIDANCE:
+- If customer rapport was genuinely positive at call end AND associate thanked the customer professionally → minimum score 70 regardless of application outcome
+- Application taken on a difficult/resistant customer → minimum score 85
+- Application taken on a cooperative customer → floor 80, ceiling depends on execution quality
+- LCC call: do NOT penalize for not discussing tradelines — score on LC-specific behaviors (explained the account, reassured on privacy, asked about needs, uncovered any hidden need)
+- Home Buyer profile: do NOT penalize for no application if associate respected the mortgage situation and left door open
 CALL HISTORY: ${state.histProfile ? `This was call #${state.histProfile.calls+1} this month (${state.histProfile.label}). Annoyance level: ${state.annoyanceLevel}.` : ''} ${state.isAppreciationMonth ? 'This is Customer Appreciation Month — guaranteed offers available.' : ''}
 RELATIONSHIP WIN: If outcome is 'relationship' — award FULL closing points (20) if associate thanked customer sincerely and customer ended warmly. A graceful professional close with no application IS a success. Note it explicitly in archetype_coaching.
 
 RAPPORT /20: +4 used name | +4 stated purpose naturally | +6 referenced specific creditor/vehicle/equity | +4 reassurance language | +2 matched energy
-PRODUCT KNOWLEDGE /20: +4 explained PCR/LCC correctly | +5 referenced THIS customer's situation | +5 handled rate professionally (FULL credit for deferral) | +4 consolidation benefit | +2 no false promises. Deduct 5 if quoted high rate cold with no context.
+PRODUCT KNOWLEDGE /20: +4 explained PCR/LCC correctly | +5 referenced situation — FOR LCC: check amount/process/privacy (NOT tradelines, callers don't have that data). FOR PCR: named creditors/vehicle. | +5 handled rate professionally (FULL credit for deferral) | +4 consolidation benefit (PCR) or uncovered hidden need (LCC) | +2 no false promises. Deduct 5 if quoted high rate cold with no context.
 OBJECTION HANDLING /25: +6 acknowledged before responding | +5 read defense vs real blocker | +6 reframed not argued | +4 did not abandon at first resistance | +4 graceful callback. Score 0 if no objections arose.
 BENEFITS COMMUNICATION /15: +5 payment not rate | +5 specific to this customer | +5 transparency ("I'll show all numbers before you decide")
 CLOSING /20: +8 asked for application or next step | +4 named specific callback time | +4 did not over-pitch | +4 created urgency without pressure. Score 0 if no closing attempt.
@@ -1405,7 +2090,7 @@ Output ONLY this JSON:
 
   try {
     const debriefBody = JSON.stringify({
-      model: 'claude-sonnet-4-20250514',
+      model: 'claude-sonnet-4-6',
       max_tokens: 1500,
       messages: [{ role: 'user', content: debriefPrompt }],
     });
@@ -1508,6 +2193,10 @@ function renderDebrief(d, outcome) {
       <div style="font-family:'Syne',sans-serif;font-weight:800;font-size:52px;color:${scoreColor(d.overall_score)}">${d.overall_score}</div>
       <div style="font-family:'Syne',sans-serif;font-weight:700;font-size:16px;margin-top:2px">${d.outcome_label || 'Call Complete'}</div>
       <div style="font-size:12px;color:var(--text2);margin-top:8px;max-width:400px;margin-left:auto;margin-right:auto;line-height:1.6">${d.summary}</div>
+      ${outcome==='converted'?`<div style="margin-top:10px;padding:8px 14px;background:#fbbf2415;border:1px solid #fbbf2430;border-radius:8px;font-size:11px;font-weight:700;color:#fbbf24">🎯 Application Taken — Act Two (Offer Presentation) coming soon</div>`:''}
+      ${outcome==='relationship'?`<div style="margin-top:10px;padding:8px 14px;background:#10b98115;border:1px solid #10b98130;border-radius:8px;font-size:11px;font-weight:700;color:#10b981">🤝 Relationship Win — customer ended warmly. Seeds planted for next contact.</div>`:''}
+      ${(state.histProfile&&state.histProfile.calls>=2)?`<div style="margin-top:8px;padding:6px 14px;background:#ef444415;border:1px solid #ef444430;border-radius:8px;font-size:10px;color:#ef4444;font-weight:600">📞 High call fatigue scenario (${state.histProfile.label}) — recovery from annoyance is an advanced skill</div>`:''}
+      ${state.isAppreciationMonth?`<div style="margin-top:8px;padding:6px 14px;background:#f59e0b15;border:1px solid #f59e0b30;border-radius:8px;font-size:10px;color:#f59e0b;font-weight:600">🎉 Customer Appreciation Month — did you use this context?</div>`:''}
     </div>
 
     <div class="score-grid">${scoreItems}</div>
@@ -1595,7 +2284,7 @@ async function testAPI() {
         'anthropic-version': '2023-06-01',
       },
       body: JSON.stringify({
-        model: 'claude-sonnet-4-20250514',
+        model: 'claude-sonnet-4-6',
         max_tokens: 20,
         messages: [{ role: 'user', content: 'Say "OK" and nothing else.' }],
       }),
@@ -1940,3 +2629,4 @@ function speakText(text) {
 // ============================================================</script>
 </body>
 </html>
+
