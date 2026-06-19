@@ -30,7 +30,11 @@ const limiter = rateLimit({
 app.use('/api/', limiter);
  
 app.use(express.static(path.join(__dirname, 'public')));
- 
+
+app.get('/', (req, res) => {
+  res.sendFile(path.join(__dirname, 'public', 'index.html'));
+});
+
 // ── API Proxy using built-in https (no node-fetch needed) ──
 app.post('/api/chat', async (req, res) => {
   const { model, max_tokens, messages, system } = req.body;
