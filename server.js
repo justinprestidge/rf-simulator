@@ -19,7 +19,7 @@
  */
 
 const express    = require('express');
-const fetch      = require('node-fetch');
+
 const path       = require('path');
 const rateLimit  = require('express-rate-limit');
 require('dotenv').config();
