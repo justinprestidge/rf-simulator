@@ -231,10 +231,7 @@ label{font-size:11px;color:var(--text2);display:block;margin-bottom:3px;}
           <option value="former_customer">Former Customer — Paid Off · Tier 2</option>
           <option value="scam_skeptic">LCC Scam Skeptic · Tier 3</option>
           <option value="cosigner_candidate">Thin File — Co-Signer Needed · Tier 4</option>
-              <optgroup label="─── Named Profiles ───"></optgroup>
-              <option value="profile_a">Profile A — Single Mom, Medical · Tier 3</option>
-              <option value="profile_b">Profile B — HVAC Owner, Skeptic · Tier 3</option>
-              <option value="profile_c">Profile C — Manager, Lifestyle Inflation · Tier 2</option>
+              
         </select>
       </div>
       <div class="panel-section" style="flex:1;display:flex;flex-direction:column;justify-content:flex-end">
@@ -722,6 +719,91 @@ function applyBureauVariance(template, customerName) {
   const occPool = OCC_POOLS[template._key || ''];
   const occupation = occPool ? occPool[rInt(0, occPool.length-1)] : template.occupation;
 
+
+  // ── Pick a life event that matches the occupation category ──
+  const OCC_CATEGORIES = {
+    family_service: ['Medical Office Coordinator','Dental Receptionist','Pediatric Clinic Front Desk',
+      'Hospital Admin Assistant','Physical Therapy Coordinator','Home Health Scheduler',
+      'Optometry Office Manager','Veterinary Receptionist','School Teacher','County Clerk',
+      'Office Manager','Library Coordinator','Government Accountant','City Inspector',
+      'DMV Supervisor','HR Coordinator','Postal Supervisor'],
+    trade_selfemployed: ['Self-Employed HVAC Contractor','Independent Electrician',
+      'Licensed Plumber','General Contractor','Auto Mechanic (Own Shop)',
+      'Welding Contractor','Roofing Contractor','Landscaping Business Owner',
+      'Maintenance Tech','Landscaping Crew Lead'],
+    professional: ['Regional Operations Manager','District Sales Manager','Marketing Director',
+      'HR Director','Senior Project Manager','Brand Manager','Finance Manager',
+      'Senior Account Executive','IT Project Manager','Logistics Coordinator',
+      'Healthcare Administrator','Accounting Supervisor','Operations Analyst',
+      'Digital Marketing Coordinator'],
+    blue_collar: ['Bus Driver','Warehouse Supervisor','Truck Driver','Mail Carrier',
+      'Correctional Officer','Factory Line Worker','Grocery Department Manager',
+      'Delivery Driver','Assembly Supervisor','School Custodian','City Utility Worker',
+      'Shipping Coordinator','Security Supervisor'],
+    retail_entry: ['Part-Time Retail Worker','Community College Student',
+      'Entry-Level Admin','Fast Food Shift Supervisor','Warehouse Associate'],
+  };
+
+  const LIFE_EVENTS_BY_CATEGORY = {
+    family_service: [
+      "a transmission repair on the car that cost over $2,000",
+      "orthodontic work for one of the kids that insurance barely covered",
+      "a vet emergency that came out of nowhere",
+      "college application fees and first semester deposits for the oldest",
+      "a water heater that went out and couldn't wait",
+      "tires and brakes that the car needed right before inspection",
+      "school activity fees and a class trip that added up quickly",
+      "a week in the hospital and the bills are still coming in",
+      "helping a child get into their first apartment",
+      "after-school programs and sports equipment for two kids",
+    ],
+    trade_selfemployed: [
+      "equipment costs that have spiked and squeezed margins significantly",
+      "a slow quarter that was worse than expected and drained the cushion",
+      "a health scare that left some unexpected medical bills",
+      "parts and materials costs that jumped after supply chain problems",
+      "a major vehicle repair that cost several thousand dollars",
+      "insurance premiums that jumped hard at renewal",
+      "a key helper leaving and having to cover the work alone for months",
+      "two jobs back-to-back where clients delayed payment and created a cash gap",
+    ],
+    professional: [
+      "a vacation that went on the card and is still being paid down",
+      "a home renovation that grew well past the original estimate",
+      "a balance transfer that helped short-term but the pattern continued",
+      "furnishing a new place after relocating for a promotion",
+      "a stretch of months where expenses kept running above income",
+      "helping a family member through a difficult time financially",
+      "a car upgrade that came with the last promotion and a higher payment",
+    ],
+    blue_collar: [
+      "an AC unit that broke down in the middle of summer",
+      "kids' braces that the dental plan barely covered",
+      "a transmission that went out at the worst possible time",
+      "three kids in travel sports and the equipment and fees never stop",
+      "an ER visit last year and the bills are still arriving",
+      "a roof that needed repairs after a storm and insurance only covered part",
+      "a move that came faster than expected and first/last wiped out savings",
+      "a car accident where the out-of-pocket wasn't covered by insurance",
+    ],
+    retail_entry: [
+      "a car repair that took most of what was saved",
+      "moving out on their own for the first time and the startup costs",
+      "a medical bill that couldn't wait",
+      "covering expenses between jobs for a couple months",
+    ],
+  };
+
+  // Determine this customer's life event category from their occupation
+  let lifeEventCategory = 'blue_collar'; // sensible default
+  for (const [cat, occs] of Object.entries(OCC_CATEGORIES)) {
+    if (occs.includes(occupation)) { lifeEventCategory = cat; break; }
+  }
+  // Professional occupations for stable_pcr and former_customer lean professional
+  if (['stable_pcr','former_customer'].includes(template._key||'')) lifeEventCategory = 'professional';
+  const evPool = LIFE_EVENTS_BY_CATEGORY[lifeEventCategory] || LIFE_EVENTS_BY_CATEGORY.blue_collar;
+  const lifeEvent = evPool[rInt(0, evPool.length-1)];
+
   // Vary FICO ±25, income ±18%
   const newFico   = Math.max(520, Math.min(720, template.fico + rInt(-25,25)));
   const newIncome = Math.max(1800, rVar(template.income, 18));
@@ -782,6 +864,7 @@ function applyBureauVariance(template, customerName) {
   return {
     ...template,
     occupation: occupation,
+    life_event: lifeEvent,
     fico: newFico,
     income: newIncome,
     accounts: newAccounts,
@@ -1425,13 +1508,7 @@ function startSimulation() {
   state.customerOccupation=cp.occupation;
   state.customerSituation=cp.situation;
   state.customerFlavor=cp.flavor;
-  // Named profiles use the generator for full randomization each run
-  const GENERATED_PROFILES = ['profile_a','profile_b','profile_c'];
-  if (GENERATED_PROFILES.includes(state.customerProfile)) {
-    state.bureau = generateProfileBureau(state.customerProfile, state.customerName);
-  } else {
-    state.bureau = applyBureauVariance(baseTemplate, state.customerName);
-  }
+  state.bureau = applyBureauVariance(baseTemplate, state.customerName);
 
   state.conversation = [];
   state.turnCount = 0;
@@ -1962,8 +2039,16 @@ ${(()=>{
   const full = getBackstory(key);
   const bsText = full ? (()=>{ const kbs=full.indexOf('KEY BEHAVIORAL SIGNALS'); return kbs>=0?full.slice(kbs,kbs+600):full.slice(0,400); })() : '';
   // Inject the specific life event if available
-  const eventNote = b.life_event ? `SPECIFIC LIFE EVENT THIS CUSTOMER EXPERIENCED: ${b.life_event}. Mention this naturally if the associate asks open-ended questions about what's been going on. Don't volunteer it immediately.` : '';
-  return [bsText, eventNote].filter(Boolean).join('\n');
+  const eventNote = b.life_event
+    ? `SPECIFIC LIFE EVENT THIS CUSTOMER EXPERIENCED: ${b.life_event}. If the associate asks open-ended questions about finances or what's been going on, this is the reason you give. Don't volunteer it immediately — let them discover it.`
+    : '';
+
+  // Occupation behavior hint
+  const occNote = b.occupation
+    ? `OCCUPATION BEHAVIOR: You work as a ${b.occupation}. Let this shape how you speak — your pace, your vocabulary, your sense of time pressure. A warehouse supervisor is direct and efficient. A school teacher is patient but firm. A self-employed contractor is independent and skeptical of outsiders. A postal worker is routine-oriented and cautious. Stay consistent with this throughout the call.`
+    : '';
+
+  return [bsText, eventNote, occNote].filter(Boolean).join('\n');
 })()}${state.customerSituation?`\nSituation: ${state.customerSituation}`:''}
 Accounts: ${bureauSum}. ${vCtx}. Monthly debt $${b.total_monthly_debt}/mo. ${b.residual_income}.
 Call: ${state.callType==='pcr'?'renewing your Republic Finance loan':'converting a pre-approved live check'}.
